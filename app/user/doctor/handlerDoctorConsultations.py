@@ -1,5 +1,6 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove, \
+    InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import asyncio
@@ -188,11 +189,40 @@ async def callback_deleteMessage(callback: CallbackQuery):
     await callback.message.delete()
 
 
-async def notifyToPatientAboutNewMessage(patient_id, doctor_fullname):
-    await bot.send_message(chat_id=patient_id, text=f'''<code>Бот</code>
+async def notifyToPatientAboutNewMessage(patient_id, doctor_fullname, doctor_id):
+    await bot.send_message(
+        chat_id=patient_id,
+        text=f"<code>Бот</code>\n\nУ вас новое сообщение от <b>{doctor_fullname}</b>!",
+        parse_mode="html",
+        reply_markup=kbInline.notify_keyboard(doctor_id, patient_id)
+    )
 
-У вас новое сообщение от <code>{doctor_fullname}</code>!
-''', parse_mode='html')
+
+@router.callback_query(F.data.startswith("seeMessage_"))
+async def callback_seeMessage(callback: CallbackQuery, state: FSMContext):
+    _, doctor_id, patient_id = callback.data.split("_")
+    doctor_id, patient_id = int(doctor_id), int(patient_id)
+
+    last_message = await requestsHistoryMessage.get_last_message_for_patient(doctor_id, patient_id)
+    if not last_message:
+        await callback.answer("Сообщений пока нет", show_alert=True)
+        return
+
+    match last_message.media_type:
+        case "text":
+            await callback.message.answer(last_message.text, parse_mode="html")
+        case "photo":
+            await callback.message.answer_photo(last_message.media_id, caption=last_message.text, parse_mode="html")
+        case "document":
+            await callback.message.answer_document(last_message.media_id, caption=last_message.text, parse_mode="html")
+        case "mediaGroupPhoto":
+            mediaGroup = [InputMediaPhoto(media=m) for m in last_message.media_id.split(", ")]
+            mediaGroup[0].caption = last_message.text
+            await callback.message.answer_media_group(mediaGroup)
+        case "mediaGroupDocument":
+            mediaGroup = [InputMediaDocument(media=m) for m in last_message.media_id.split(", ")]
+            mediaGroup[-1].caption = last_message.text
+            await callback.message.answer_media_group(mediaGroup)
 
 
 @router.callback_query(F.data.startswith('sendMessage_'), ChatDoctor.openDialog)
@@ -202,6 +232,7 @@ async def callback_sendMessage(callback: CallbackQuery, state: FSMContext):
     _, message_id, patient_id = callback.data.split('_')
     message_id, patient_id = map(int, (message_id, patient_id))
     message_to_repeat = await requestsMessageToRepeat.get_message_to_repeat_by_id(message_id)
+
     chat_type = data['chat_type']
     media_type = message_to_repeat.media_type
     media_id = message_to_repeat.media_id

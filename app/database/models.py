@@ -28,7 +28,7 @@ class User(Base):
 class Doctor(Base):
     __tablename__ = 'doctors'
 
-    user_id = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     full_name: Mapped[str] = mapped_column()
     country: Mapped[str] = mapped_column()  #
     city: Mapped[str] = mapped_column()  #
@@ -118,7 +118,7 @@ class Statistics(Base):
 class Admin(Base):
     __tablename__ = 'admins'
 
-    user_id = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
 
 class MessageToSend(Base):

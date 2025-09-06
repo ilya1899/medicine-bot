@@ -5,7 +5,6 @@ from aiogram.fsm.context import FSMContext
 
 router = Router()
 
-
 from app.businessLogic import logicCommand
 
 
@@ -13,9 +12,7 @@ from app.businessLogic import logicCommand
 async def cmd_start(message: Message, state: FSMContext):
     await logicCommand.start(message, state)
 
+
 @router.callback_query(F.data == 'returnToMenu')
 async def callback_returnToMenu(callback: CallbackQuery, state: FSMContext):
     await logicCommand.returnToMenu(callback, state)
-
-
-

@@ -10,6 +10,33 @@ regChooseGender = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
+def kb_patient_new_msg(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👀 Посмотреть", callback_data=f"seeMessage_{doctor_id}_{patient_id}")]
+    ])
+
+
+def kb_patient_peek_actions(consult_id: int, doctor_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Ответить", callback_data=f"replyDoctor_{doctor_id}")],
+        [InlineKeyboardButton(text="🗂 Посмотреть консультацию", callback_data=f"viewConsult_{consult_id}")],
+        [InlineKeyboardButton(text="⬅️ Закрыть", callback_data="closePeek")]
+    ])
+
+
+def kb_patient_consult_actions(consult_id: int, doctor_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Ответить", callback_data=f"replyDoctor_{doctor_id}")],
+        [InlineKeyboardButton(text="✅ Завершить консультацию", callback_data=f"endConsult_{consult_id}_{doctor_id}")]
+    ])
+
+
+def notify_keyboard(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="👀 Посмотреть", callback_data=f"seeMessage_{doctor_id}_{patient_id}")
+    ]])
+
+
 async def getKeyboardCountryOrCity(place, callback):
     keyboard = InlineKeyboardBuilder()
     for i in range(len(place)):
@@ -258,7 +285,7 @@ async def getKeyboardFirstMessageSend(doctor_id, consultation, specialty, id):
     return keyboard.as_markup()
 
 
-async def consent_keyboard(state_data: dict) -> InlineKeyboardMarkup:
+def consent_keyboard(state_data: dict) -> InlineKeyboardMarkup:
     license_mark = "✅" if state_data.get("license_accepted") else "☐"
     privacy_mark = "✅" if state_data.get("privacy_accepted") else "☐"
     personal_mark = "✅" if state_data.get("personal_accepted") else "☐"

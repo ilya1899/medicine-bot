@@ -1,8 +1,7 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, desc
 
-from app.database.models import HistoryMessage
+from app.database.models import HistoryMessage, HistoryConsultation
 from app.database.models import async_session
-
 
 
 async def add_message(id_consultation: int, patient_id: int, doctor_id: int, who_write: str, text: str,
@@ -37,25 +36,16 @@ async def get_all_messages_by_consultation_id(id_consultation: int):
         return messages.all()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+async def get_last_message_for_patient(doctor_id: int, patient_id: int):
+    async with async_session() as session:
+        result = await session.scalars(
+            select(HistoryMessage)
+            .join(HistoryConsultation, HistoryMessage.id_consultation == HistoryConsultation.id)
+            .where(
+                HistoryConsultation.doctor_id == doctor_id,
+                HistoryConsultation.patient_id == patient_id
+            )
+            .order_by(desc(HistoryMessage.id))
+            .limit(1)
+        )
+        return result.all()

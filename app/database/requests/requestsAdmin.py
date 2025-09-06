@@ -12,7 +12,7 @@ async def add_admin(user_id: int):
 async def is_admin(user_id: int):
     async with async_session() as session:
         result = await session.scalar(select(Admin).where(Admin.user_id == user_id))
-        return result != None
+        return result is not None
 
 
 async def delete_admin(user_id: int):

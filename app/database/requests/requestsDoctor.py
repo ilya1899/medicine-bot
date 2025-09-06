@@ -28,7 +28,7 @@ async def add_doctor(user_id: int, full_name: str, country: str, city: str, spec
 async def is_doctor(user_id: int):
     async with async_session() as session:
         doctor = await session.scalar(select(Doctor).where(Doctor.user_id == user_id))
-        return doctor != None
+        return doctor is not None
 
 
 async def is_open_dialog(doctor_id: int, patient_id: int):

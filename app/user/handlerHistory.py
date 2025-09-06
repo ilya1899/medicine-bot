@@ -1,14 +1,19 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton, \
+    InputMediaDocument
 from aiogram.fsm.context import FSMContext
 import asyncio
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from app.businessLogic.logicConsultation import ChatPatient
+from run import bot
+
 router = Router()
 
-from app.database.requests import requestsHistoryMessage, requestsHistoryConsultation, requestsDoctor, requestsSpecialty
-from app.keyboards import kbInline
+from app.database.requests import requestsHistoryMessage, requestsHistoryConsultation, requestsDoctor, \
+    requestsSpecialty, requestsMessageToSend, requestsBundle
+from app.keyboards import kbInline, kbReply
 from app.businessLogic import logicConsultation
 from config import type_consultation
 
@@ -92,7 +97,7 @@ async def callback_history_consultation(callback: CallbackQuery):
             case "document":
                 await callback.message.answer_document(document=msg.media_id, caption=msg.text)
             case "mediaGroup":
-                pass  # при необходимости можно обработать media_group
+                pass
 
     builder = InlineKeyboardBuilder()
     if consultation.chat_type in ["mainFirst", "mainRepeated"]:
@@ -151,7 +156,6 @@ async def callback_history_specialty(callback: CallbackQuery):
         await callback.answer('Вы пока не обращались к врачу этой специальности')
 
 
-# --- Хендлер уровня 2: выбор врача ---
 @router.callback_query(F.data.startswith('history_doctor_'))
 async def callback_history_doctor(callback: CallbackQuery):
     doctor_id = int(callback.data.split('_')[2])
@@ -177,7 +181,6 @@ async def callback_history_doctor(callback: CallbackQuery):
         await callback.answer('Нет консультаций с этим врачом')
 
 
-# --- Хендлер уровня 3: выбор конкретной консультации ---
 @router.callback_query(F.data.startswith('history_consultation_'))
 async def callback_history_consultation(callback: CallbackQuery):
     parts = callback.data.split('_')
@@ -320,3 +323,146 @@ async def callback_readCompletedConsultation(callback: CallbackQuery):
 async def callback_returnToHistoryCompletedConsultations(callback: CallbackQuery):
     # await callback_completedConsultations(callback)
     pass
+
+
+@router.callback_query(F.data.startswith("seeMessage_"))
+async def callback_peek_new_message(callback: CallbackQuery, state: FSMContext):
+    doctor_id, patient_id = map(int, callback.data.split("_")[1:3])
+
+    consult_id = await requestsBundle.get_id_consultation(patient_id, doctor_id)
+    if not consult_id:
+        await callback.answer("Консультация не найдена.")
+        return
+
+    doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
+    last_msg = await requestsMessageToSend.get_last_message_for_patient(doctor_id, patient_id)
+    if not last_msg:
+        await callback.answer("Новых сообщений нет.")
+        return
+
+    header = f"<b>{doctor.full_name}</b>\n\n"
+    if last_msg.media_type == "text":
+        await callback.message.edit_text(
+            header + (last_msg.text or ""),
+            parse_mode="html",
+            reply_markup=kbInline.kb_patient_peek_actions(consult_id, doctor_id)
+        )
+    elif last_msg.media_type == "photo":
+        await callback.message.delete()
+        await bot.send_photo(
+            chat_id=patient_id,
+            photo=last_msg.media_id,
+            caption=header + (last_msg.text or ""),
+            parse_mode="html",
+            reply_markup=kbInline.kb_patient_peek_actions(consult_id, doctor_id)
+        )
+    elif last_msg.media_type == "document":
+        await callback.message.delete()
+        await bot.send_document(
+            chat_id=patient_id,
+            document=last_msg.media_id,
+            caption=header + (last_msg.text or ""),
+            parse_mode="html",
+            reply_markup=kbInline.kb_patient_peek_actions(consult_id, doctor_id)
+        )
+    elif last_msg.media_type in ("mediaGroupPhoto", "mediaGroupDocument"):
+        await callback.message.delete()
+        parts = (last_msg.media_id or "").split(", ")
+        if last_msg.media_type == "mediaGroupPhoto":
+            media = [InputMediaPhoto(media=p) for p in parts]
+            if last_msg.text or "":
+                media[0].caption = header + last_msg.text
+        else:
+            media = [InputMediaDocument(media=p) for p in parts]
+            if last_msg.text or "":
+                media[-1].caption = header + last_msg.text
+
+        messages = await bot.send_media_group(chat_id=patient_id, media=media)
+        await bot.send_message(
+            chat_id=patient_id,
+            text="Действия:",
+            reply_markup=kbInline.kb_patient_peek_actions(consult_id, doctor_id)
+        )
+
+
+@router.callback_query(F.data.startswith("replyDoctor_"))
+async def callback_reply_doctor(callback: CallbackQuery, state: FSMContext):
+    doctor_id = int(callback.data.split("_")[1])
+    patient_id = callback.from_user.id
+
+    chat_type = await requestsBundle.get_chat_type(patient_id, doctor_id)
+    if not chat_type:
+        await callback.answer("Активной консультации не найдено.")
+        return
+
+    await requestsBundle.edit_is_open_dialog_patient(patient_id, doctor_id, True)
+
+    await state.set_state(ChatPatient.openDialog)
+    await state.update_data(doctor_id=doctor_id, chat_type=chat_type)
+
+    await callback.message.answer(
+        f"Вы открыли чат с доктором. Тип: {type_consultation[chat_type]}\nНапишите ваш ответ:",
+        reply_markup=kbReply.kbPatientDialog
+    )
+
+
+@router.callback_query(F.data.startswith("viewConsult_"))
+async def callback_view_consult(callback: CallbackQuery):
+    patient_id = callback.from_user.id
+    consult_id = int(callback.data.split("_")[1])
+
+    messages = await requestsHistoryMessage.get_all_messages_by_consultation_id(consult_id)
+    if not messages:
+        await callback.answer("Переписка пуста.")
+        return
+
+    await callback.message.edit_text("<b>Переписка:</b>", parse_mode="html")
+
+    for m in messages:
+        if m.media_type == "text":
+            await callback.message.answer(m.text, parse_mode="html")
+        elif m.media_type == "photo":
+            await callback.message.answer_photo(photo=m.media_id, caption=m.text or "", parse_mode="html")
+        elif m.media_type == "document":
+            await callback.message.answer_document(document=m.media_id, caption=m.text or "", parse_mode="html")
+        elif m.media_type in ("mediaGroupPhoto", "mediaGroupDocument"):
+            parts = (m.media_id or "").split(", ")
+            if m.media_type == "mediaGroupPhoto":
+                group = [InputMediaPhoto(media=p) for p in parts]
+                if m.text or "":
+                    group[0].caption = m.text
+            else:
+                group = [InputMediaDocument(media=p) for p in parts]
+                if m.text or "":
+                    group[-1].caption = m.text
+            await callback.message.answer_media_group(media=group)
+
+    if messages:
+        doctor_id = messages[-1].doctor_id
+    else:
+        bundle = await requestsBundle.get_bundle(patient_id, doctor_id=None)
+        doctor_id = bundle.doctor_id if bundle else 0
+
+    await callback.message.answer(
+        "Действия:",
+        reply_markup=kbInline.kb_patient_consult_actions(consult_id, doctor_id)
+    )
+
+
+@router.callback_query(F.data.startswith("endConsult_"))
+async def callback_end_consult(callback: CallbackQuery, state: FSMContext):
+    _, consult_id, doctor_id = callback.data.split("_")
+    doctor_id = int(doctor_id)
+    patient_id = callback.from_user.id
+
+    try:
+        await requestsMessageToSend.delete_messages_to_send(doctor_id, patient_id)
+    except:
+        pass
+    try:
+        await requestsBundle.delete_bundle(patient_id, doctor_id)
+    except:
+        pass
+
+    await state.clear()
+    await callback.message.edit_text("Консультация завершена. Спасибо!")

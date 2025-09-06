@@ -3,8 +3,6 @@ from app.database.models import Country
 from app.database.models import async_session
 
 
-
-
 async def add_country(name: str):
     async with async_session() as session:
         session.add(Country(name=name))
@@ -21,7 +19,6 @@ async def delete_country(name: str):
         return False
 
 
-
 async def get_name(id: int):
     async with async_session() as session:
         country = await session.scalar(select(Country).where(Country.id == id))
@@ -34,6 +31,7 @@ async def get_country_by_name(name: str):
     async with async_session() as session:
         country = await session.scalar(select(Country).where(Country.name == name))
         return country
+
 
 async def get_country_by_id(id: int):
     async with async_session() as session:
@@ -51,16 +49,3 @@ async def is_country_by_name(name: str):
     async with async_session() as session:
         country = await session.scalar(select(Country).where(Country.name == name))
         return country != None
-
-
-
-
-
-
-
-
-
-
-
-
-
