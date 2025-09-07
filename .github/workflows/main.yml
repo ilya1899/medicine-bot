@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Create .env file from Github secrets
         run: |
           echo "DB_USER=${{ secrets.DB_USER }}" >> .env
