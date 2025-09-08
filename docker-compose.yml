@@ -39,6 +39,8 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PG_ADMIN_PASSWORD}
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+      - ./cert.pem:/var/lib/postgresql/data/cert.pem
+      - ./private.pem:/var/lib/postgresql/data/private.pem
     depends_on:
       - db
     networks:
