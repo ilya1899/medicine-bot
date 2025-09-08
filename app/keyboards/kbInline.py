@@ -304,14 +304,14 @@ def consent_keyboard(state_data: dict) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-# async def getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, specialty):
-#     keyboard = InlineKeyboardBuilder()
-#     if consultation == 'JustAsk':
-#         keyboard.row(InlineKeyboardButton(text='Да', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
-#     else:
-#         keyboard.row(InlineKeyboardButton(text='Отправить', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
-#     keyboard.row(InlineKeyboardButton(text='Назад', callback_data=f'sendNotTrue_{consultation}_{doctor_id}_{id}_{specialty}'))
-#     return keyboard.as_markup()
+async def getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, specialty):
+    keyboard = InlineKeyboardBuilder()
+    if consultation == 'JustAsk':
+        keyboard.row(InlineKeyboardButton(text='Да', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
+    else:
+        keyboard.row(InlineKeyboardButton(text='Отправить', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
+    keyboard.row(InlineKeyboardButton(text='Назад', callback_data=f'sendNotTrue_{consultation}_{doctor_id}_{id}_{specialty}'))
+    return keyboard.as_markup()
 
 
 async def getKeyboardLongSendMessage(doctor_id, chat_type, id, specialty):

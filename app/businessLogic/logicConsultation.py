@@ -3,6 +3,9 @@ from aiogram.fsm.context import FSMContext, StorageKey
 from aiogram.fsm.state import State, StatesGroup
 import asyncio
 
+from app.businessLogic.logicRegistration import EditUser
+from app.keyboards.kbInline import getKeyboardAcceptPayment
+
 
 class AttachFile(StatesGroup):
     photoJustAsk = State()
@@ -44,7 +47,6 @@ from app.database.requests import requestsDoctor, requestsMessageToSend, request
     requestsReview, \
     requestsUser, requestsSpecialty, requestsHistoryMessage, requestsHistoryConsultation, requestsLastMessage, \
     requestsMessageToRepeat
-from app.businessLogic.logicRegistration import EditUser
 
 
 async def askDoctor(patient_id, function):
@@ -97,8 +99,8 @@ async def continueConsultationDoctor(callback: CallbackQuery, state: FSMContext)
                 case 'text':
                     await callback.message.answer(messageToSend.text, parse_mode='html')
                 case 'photo':
-                    await callback.message.answer_photo(photo=messageToSend.media_id, caption=messageToSend.text,
-                                                        parse_mode='html')
+                    await callback.message.answer(text=messageToSend.text,
+                                                  parse_mode='html')
                 case 'document':
                     await callback.message.answer_document(document=messageToSend.media_id, caption=messageToSend.text,
                                                            parse_mode='html')
@@ -226,7 +228,7 @@ async def openDoctorInfo(callback: CallbackQuery):
         price = int(price * 1.2)
 
         await callback.message.delete()
-        await callback.message.answer_photo(photo=doctor.photo, caption=f'''{doctor.full_name}
+        await callback.message.answer(text=f'''{doctor.full_name}
 Общий рейтинг: {doctor.rating_all} / {number_of_consultation}
 
 Детальный рейтинг:
@@ -338,7 +340,7 @@ async def resume(callback: CallbackQuery):
             ids = ids.split(', ')
             await bot.delete_messages(chat_id=callback.from_user.id, message_ids=[int(i) for i in ids])
         await callback.message.delete()
-        await callback.message.answer_photo(photo=doctor.photo, caption=f'''<b>Резюме</b>
+        await callback.message.answer(text=f'''<b>Резюме</b>
 
 {doctor.resume}
 
@@ -429,7 +431,7 @@ async def returnToDoctorInfo(callback: CallbackQuery):
     price = int(price * 1.2)
 
     await callback.message.delete()
-    await callback.message.answer_photo(photo=doctor.photo, caption=f'''{doctor.full_name}
+    await callback.message.answer(text=f'''{doctor.full_name}
 Общий рейтинг: {doctor.rating_all} / {number_of_consultation}
 
 Детальный рейтинг:
@@ -537,36 +539,12 @@ async def acceptDoctor(callback):
                                                 parse_mode='html')
         except:
             await callback.message.delete()
-            await callback.message.answer_photo(photo=doctor.photo,
-                                                caption=text,
-                                                reply_markup=await kbInline.getKeyboardConsultation(doctor_id, index,
-                                                                                                    id, False),
-                                                parse_mode='html')
+            await callback.message.answer(text=text,
+                                          reply_markup=await kbInline.getKeyboardConsultation(doctor_id, index,
+                                                                                              id, False),
+                                          parse_mode='html')
     else:
         await callback.answer('Вы не можете выбрать себя.')
-
-
-async def trueRegistration(callback, doctor_id, index, id):
-    doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
-    consultation_price = 'от ' + str(int(min(doctor.price_main_first, doctor.price_main_repeated) * 1.2)) + ' руб.'
-    if consultation_price == 0:
-        consultation_price = '🕊️'
-    text = f'''Прочитайте <b>«Правила консультаций»</b>, после чего выберите подходящий вид консультации.
-
-«Просто спросить» - {'🕊️' if doctor.price_just_ask == 0 else str(int(doctor.price_just_ask * 1.2)) + ' руб.'}
-
-«Консультация» - {consultation_price}
-
-«Второе мнение» - {'🕊️' if doctor.price_second_opinion == 0 else str(int(doctor.price_second_opinion * 1.2)) + ' руб.'}
-
-«Расшифровка анализов» - {'🕊️' if doctor.price_decoding == 0 else str(int(doctor.price_decoding * 1.2)) + ' руб.'}
-'''
-    await callback.message.delete()
-    await callback.message.answer_photo(photo=doctor.photo,
-                                        caption=text,
-                                        reply_markup=await kbInline.getKeyboardConsultation(doctor_id, index, id,
-                                                                                            False),
-                                        parse_mode='html')
 
 
 async def chooseConsultation(callback, state):
@@ -638,10 +616,10 @@ async def attachFileFirstMessage(text, media_type, media_id, message, state, cha
                         id = await requestsMessageToSend.get_id_last_message_to_send(patient_id, data['doctor_id'])
 
                         if media_type == 'photo':
-                            await message.answer_photo(photo=media_id, caption='<i>' + data['name'] + '</i>\n\n' + text,
-                                                       reply_markup=await kbInline.getKeyboardFirstMessageSend(
-                                                           data['doctor_id'], chat_type, specialty, id),
-                                                       parse_mode='html')
+                            await message.answer(text='<i>' + data['name'] + '</i>\n\n' + text,
+                                                 reply_markup=await kbInline.getKeyboardFirstMessageSend(
+                                                     data['doctor_id'], chat_type, specialty, id),
+                                                 parse_mode='html')
                         else:
                             await message.answer_document(document=media_id,
                                                           caption='<i>' + data['name'] + '</i>\n\n' + text,
@@ -777,25 +755,31 @@ async def sendFirstMessage(callback: CallbackQuery, chat_type: str, state: FSMCo
 После успешной оплаты пришлите чек <b>файлом.</b>''', parse_mode='html')
 
 
-# async def isSendFirstMessage(callback: CallbackQuery):
-#     consultation = callback.data.split('_')[1]
-#     doctor_id = callback.data.split('_')[2]
-#     id = callback.data.split('_')[3]
-#     specialty = callback.data.split('_')[4]
-#     if consultation == 'justAsk':
-#         if callback.message.photo or callback.message.document:
-#             await callback.message.edit_caption(inline_message_id=str(callback.message.message_id), caption='Отправить вопрос врачу?',
-#                                                 reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, specialty))
-#         else:
-#             await callback.message.edit_text('Отправить вопрос врачу?',
-#                                              reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, specialty))
-#     else:
-#         if callback.message.photo or callback.message.document:
-#             await callback.message.edit_caption(inline_message_id=str(callback.message.message_id), caption='Вы уверены?',
-#                                                 reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, specialty))
-#         else:
-#             await callback.message.edit_text('Вы уверены?',
-#                                              reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, specialty))
+async def isSendFirstMessage(callback: CallbackQuery):
+    consultation = callback.data.split('_')[1]
+    doctor_id = callback.data.split('_')[2]
+    id = callback.data.split('_')[3]
+    specialty = callback.data.split('_')[4]
+    if consultation == 'justAsk':
+        if callback.message.photo or callback.message.document:
+            await callback.message.edit_caption(inline_message_id=str(callback.message.message_id),
+                                                caption='Отправить вопрос врачу?',
+                                                reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(
+                                                    doctor_id, consultation, id, specialty))
+        else:
+            await callback.message.edit_text('Отправить вопрос врачу?',
+                                             reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(
+                                                 doctor_id, consultation, id, specialty))
+    else:
+        if callback.message.photo or callback.message.document:
+            await callback.message.edit_caption(inline_message_id=str(callback.message.message_id),
+                                                caption='Вы уверены?',
+                                                reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(
+                                                    doctor_id, consultation, id, specialty))
+        else:
+            await callback.message.edit_text('Вы уверены?',
+                                             reply_markup=await kbInline.getKeyboardFirstMessageSendTrueOrFalse(
+                                                 doctor_id, consultation, id, specialty))
 
 
 async def consultationTruePayment(message: Message, state: FSMContext):
@@ -805,25 +789,26 @@ async def consultationTruePayment(message: Message, state: FSMContext):
     chat_type = data['chat_type']
     id = data['id']
     specialty = data['specialty']
+    # consultation = data['consultation']
 
     doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
 
     price = await getPrice(doctor_id, chat_type)
     if message.document:
-        await bot.send_document(chat_id=admin_group_id, document=message.document.file_id,
-                                caption=f'''Пациент <code>{patient_id}</code> произвел оплату на сумму: {int(price * 1.2)} руб.
-
-Тип консультации: {type_consultation[chat_type]}
-Врач: {doctor.full_name}
-Реквизиты врача:
-МИР: {doctor.bank_details_russia}
-VISA / MASTERCARD: {doctor.bank_details_abroad}
-''',
-                                reply_markup=await kbInline.getKeyboardAcceptPayment(patient_id, doctor_id, chat_type,
-                                                                                     id, specialty),
-                                parse_mode='html')
-        await message.answer(
-            'Заявка отправлена администратору. После подтверждения оплаты информация будет отправлена специалисту.')
+        #         await bot.send_document(chat_id=admin_group_id, document=message.document.file_id,
+        #                                 caption=f'''Пациент <code>{patient_id}</code> произвел оплату на сумму: {int(price * 1.2)} руб.
+        #
+        # Тип консультации: {type_consultation[chat_type]}
+        # Врач: {doctor.full_name}
+        # Реквизиты врача:
+        # МИР: {doctor.bank_details_russia}
+        # VISA / MASTERCARD: {doctor.bank_details_abroad}
+        # ''',
+        #                                 reply_markup=await kbInline.getKeyboardAcceptPayment(patient_id, doctor_id, chat_type,
+        #                                                                                      id, specialty),
+        #                                 parse_mode='html')
+        await message.answer(reply_markup=await getKeyboardAcceptPayment(patient_id, doctor_id, "my", id, specialty),
+                             text='Заявка отправлена администратору. После подтверждения оплаты информация будет отправлена специалисту.')
     else:
         await message.answer('Пожалуйста, отправьте чек в виде <b>файла</b>', parse_mode='html')
 
@@ -849,9 +834,9 @@ async def consultationAcceptPayment(callback: CallbackQuery):
     await bot.send_message(chat_id=patient_id,
                            text='Оплата принята, информация отправлена врачу, он обязательно Вам ответит, как освободится. Благодарим за обращение!',
                            reply_markup=keyboard)
-    await callback.message.edit_caption(inline_message_id=str(callback.message.message_id),
-                                        caption=callback.message.caption + '\n\n<b>Подтверждено</b>',
-                                        parse_mode='html')
+    await callback.message.answer(
+        text=(callback.message.caption or "") + "\n\n<b>Подтверждено</b>",
+        parse_mode="HTML")
 
     specialty = (await requestsSpecialty.get_specialty_by_id(id_specialty)).name
 
@@ -977,7 +962,7 @@ async def consultationOffer(callback, state, chat_type, function):
 
 async def message_before_consultations(message):
     messageBeforeConsultation = await requestsLastMessage.get_last_message_by_function('before_consultations')
-    if message:
+    if message and messageBeforeConsultation is not None:
         await message.answer(messageBeforeConsultation.text, parse_mode='html')
         await asyncio.sleep(6)
 
@@ -1366,9 +1351,9 @@ async def sendMediaGroupPhoto(message, patient_id, data):
             await requestsMessageToRepeat.add_message_to_repeat(patient_id, data['doctor_id'], message.html_text,
                                                                 'photo', message.photo[-1].file_id)
             message_id = await requestsMessageToRepeat.get_id_last_message_to_repeat(patient_id, data['doctor_id'])
-            await message.answer_photo(photo=message.photo[-1].file_id, caption=message.html_text,
-                                       parse_mode='html',
-                                       reply_markup=await kbInline.sendOrDelete(message_id, data['doctor_id']))
+            await message.answer(text=message.html_text,
+                                 parse_mode='html',
+                                 reply_markup=await kbInline.sendOrDelete(message_id, data['doctor_id']))
         else:
             await requestsMessageToRepeat.add_message_to_repeat(patient_id, data['doctor_id'], message.html_text,
                                                                 'mediaGroupPhoto',
