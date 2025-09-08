@@ -3,7 +3,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from app.keyboards import kbInline
 from app.database.requests import requestsUser, requestsCountry, requestsCity
-from app.businessLogic import logicConsultation
 
 
 class EditUser(StatesGroup):
@@ -76,18 +75,18 @@ async def regCityOwn(message: Message, state: FSMContext):
 ''', reply_markup=await kbInline.getKeyboardForContracts([False, False, False]), parse_mode='html')
 
 
-async def cross(callback: CallbackQuery, state: FSMContext):
-    string = callback.data.split('_')[2:]
-    number = int(callback.data.split('_')[1])
-    listCross = kbInline.stringCrossToList('_'.join(string))
-    listCross[number] = not listCross[number]
-    await callback.message.edit_text('''Продолжая пользоваться сервисом, вы подтверждаете, что ознакомились и даете согласие на обработку персональных данных, принимаете пользовательское соглашение и соглашаетесь с политикой конфиденциальности.
-
-1. <b><a href="https://docs.google.com/document/d/1_9szCZrkTcqGgQtlt72eS5-qpspIjVu-Q9EUmXhxiu4/edit?tab=t.0">Согласие на обработку персональных данных</a></b>
-2. <b><a href="https://docs.google.com/document/d/1G0vV1sS8sGMnsLdvxhQEJqIFlHV-DyxZMduO5DJdhYA/edit?tab=t.0#heading=h.fm4pd0evtapc">Пользовательское соглашение</a></b>
-3. <b><a href="https://docs.google.com/document/d/1sveSZuZAzp5Wp4AnBXp2faUh1Zz6uPvS42Yq_NaflPg/edit?tab=t.0">Политика конфиденциальности</a></b>
-''', reply_markup=await kbInline.getKeyboardForContracts(listCross), parse_mode='html')
-    if listCross[0] and listCross[1] and listCross[2]:
-        data = await state.get_data()
-        await requestsUser.add_user(callback.from_user.id, data['gender'], data['age'], data['country'], data['city'])
-        await logicConsultation.trueRegistration(callback, data['doctor_id'], data['index'], data['specialty'])
+# async def cross(callback: CallbackQuery, state: FSMContext):
+#     string = callback.data.split('_')[2:]
+#     number = int(callback.data.split('_')[1])
+#     listCross = kbInline.stringCrossToList('_'.join(string))
+#     listCross[number] = not listCross[number]
+#     await callback.message.edit_text('''Продолжая пользоваться сервисом, вы подтверждаете, что ознакомились и даете согласие на обработку персональных данных, принимаете пользовательское соглашение и соглашаетесь с политикой конфиденциальности.
+#
+# 1. <b><a href="https://docs.google.com/document/d/1_9szCZrkTcqGgQtlt72eS5-qpspIjVu-Q9EUmXhxiu4/edit?tab=t.0">Согласие на обработку персональных данных</a></b>
+# 2. <b><a href="https://docs.google.com/document/d/1G0vV1sS8sGMnsLdvxhQEJqIFlHV-DyxZMduO5DJdhYA/edit?tab=t.0#heading=h.fm4pd0evtapc">Пользовательское соглашение</a></b>
+# 3. <b><a href="https://docs.google.com/document/d/1sveSZuZAzp5Wp4AnBXp2faUh1Zz6uPvS42Yq_NaflPg/edit?tab=t.0">Политика конфиденциальности</a></b>
+# ''', reply_markup=await kbInline.getKeyboardForContracts(listCross), parse_mode='html')
+#     if listCross[0] and listCross[1] and listCross[2]:
+#         data = await state.get_data()
+#         await requestsUser.add_user(callback.from_user.id, data['gender'], data['age'], data['country'], data['city'])
+#         await logicConsultation.trueRegistration(callback, data['doctor_id'], data['index'], data['specialty'])
