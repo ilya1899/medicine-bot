@@ -1,6 +1,8 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
+
+from app.database.requests import requestsHistoryMessage
 
 router = Router()
 
@@ -375,3 +377,17 @@ async def callback_sendMessage(callback: CallbackQuery):
 @router.message(ChatPatient.openDialog)
 async def message_openDialogPatient(message: Message, state: FSMContext):
     await logicConsultation.openDialogPatient(message, state)
+
+@router.callback_query(F.data.startswith("seePatientMessage_"))
+async def callback_see_patient_message(callback: CallbackQuery):
+    _, patient_id, consult_id = callback.data.split("_")
+    await logicConsultation.show_patient_message(callback, int(patient_id), int(consult_id))
+
+
+@router.callback_query(F.data.startswith('convPatient_'))
+async def callback_conv_patient(callback: CallbackQuery):
+    _, doctor_id, patient_id, page = callback.data.split('_')
+    doctor_id = int(doctor_id)
+    patient_id = int(patient_id)
+    page = int(page)
+    await logicConsultation.show_patient_conversation_paginated(callback.message, doctor_id, patient_id, page)

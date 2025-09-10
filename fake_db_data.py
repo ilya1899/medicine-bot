@@ -13,7 +13,7 @@ if sys.platform.startswith("win"):
 
 load_dotenv()
 
-fake = Faker()
+fake = Faker('ru_RU')
 
 
 async def populate_database(user_ids=None, doctor_ids=None, n_users=5, n_doctors=3):
@@ -87,7 +87,6 @@ async def populate_database(user_ids=None, doctor_ids=None, n_users=5, n_doctors
                 resume=fake.text(max_nb_chars=200),
                 is_face_to_face=True,
                 data_face_to_face="Офис",
-                photo="",
                 price_just_ask=random.randint(500, 2000),
                 price_decoding=random.randint(500, 2000),
                 price_main_first=random.randint(500, 2000),

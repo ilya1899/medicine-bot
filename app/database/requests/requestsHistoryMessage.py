@@ -1,6 +1,6 @@
 from sqlalchemy import select, update, desc
 
-from app.database.models import HistoryMessage, HistoryConsultation
+from app.database.models import HistoryMessage, HistoryConsultation, User
 from app.database.models import async_session
 
 
@@ -48,4 +48,35 @@ async def get_last_message_for_patient(doctor_id: int, patient_id: int):
             .order_by(desc(HistoryMessage.id))
             .limit(1)
         )
-        return result.all()
+        return result.first()
+
+
+async def get_last_consultation_id(patient_id: int, doctor_id: int) -> int | None:
+    async with async_session() as session:
+        result = await session.scalars(
+            select(HistoryConsultation.id)
+            .where(
+                HistoryConsultation.patient_id == patient_id,
+                HistoryConsultation.doctor_id == doctor_id
+            )
+            .order_by(desc(HistoryConsultation.id))
+            .limit(1)
+        )
+        return result.first()
+
+
+async def get_patient_info(patient_id: int):
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.user_id == patient_id)
+        )
+        return result.scalar()
+
+async def get_messages_by_consultation_id(consultation_id: int):
+    async with async_session() as session:
+        result = await session.execute(
+            select(HistoryMessage)
+            .where(HistoryMessage.id_consultation == consultation_id)
+            .order_by(HistoryMessage.id.asc())
+        )
+        return result.scalars().all()

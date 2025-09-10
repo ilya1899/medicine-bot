@@ -1,6 +1,6 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, desc
 
-from app.database.models import HistoryConsultation, HistoryMessage
+from app.database.models import HistoryConsultation, HistoryMessage, Bundle
 from app.database.models import async_session
 
 
@@ -76,3 +76,42 @@ async def get_messages_by_consultation_id(consultation_id: int):
             .order_by(HistoryMessage.id)
         )).all()
         return messages
+
+
+async def get_latest_consultation(doctor_id: int, patient_id: int):
+    async with async_session() as session:
+        result = await session.scalars(
+            select(HistoryConsultation)
+            .where(
+                HistoryConsultation.doctor_id == doctor_id,
+                HistoryConsultation.patient_id == patient_id
+            )
+            .order_by(desc(HistoryConsultation.id))
+            .limit(1)
+        )
+        return result.first()
+
+
+async def get_consultation_messages(doctor_id: int, patient_id: int):
+    consultation = await get_latest_consultation(doctor_id, patient_id)
+    if not consultation:
+        return []
+
+    async with async_session() as session:
+        result = await session.scalars(
+            select(HistoryMessage)
+            .where(HistoryMessage.id_consultation == consultation.id)
+            .order_by(HistoryMessage.id.asc())
+        )
+        return result.all()
+
+
+async def close_consultation(doctor_id: int, patient_id: int):
+    async with async_session() as session:
+        await session.execute(
+            update(Bundle)
+            .where(Bundle.doctor_id == doctor_id, Bundle.patient_id == patient_id)
+            .values(is_open_dialog_patient=False, is_open_dialog_doctor=False)
+        )
+        await session.commit()
+        return True

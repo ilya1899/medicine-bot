@@ -4,16 +4,16 @@ from app.database.models import async_session
 from app.database.models import User, Doctor
 
 
-async def add_user(user_id: int, gender: str, age: int, country: str, city: str):
+async def add_user(user: User):
     async with async_session() as session:
-        session.add(User(user_id=user_id, gender=gender, age=age, country=country, city=city))
+        session.add(user)
         await session.commit()
 
 
-async def edit_user(user_id: int, gender: str, age: int, country: int, city: int):
+async def edit_user(user: User):
     async with async_session() as session:
-        user = await session.execute(update(User).where(User.user_id == user_id).values(gender=gender, age=age,
-                                                                                        country=country, city=city))
+        user = await session.execute(update(User).where(User.user_id == user.user_id).values(gender=user.gender, age=user.age,
+                                                                                        country=user.country, city=user.city, full_name=user.full_name))
         await session.commit()
         return user.rowcount > 0
 
@@ -109,3 +109,10 @@ async def get_users_by_city(city: str):
     async with async_session() as session:
         users = await session.scalars(select(User).where(User.city == city))
         return users.all()
+
+async def get_user_by_id(user_id: int):
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.user_id == user_id)
+        )
+        return result.scalars().first()

@@ -32,9 +32,82 @@ def kb_patient_consult_actions(consult_id: int, doctor_id: int) -> InlineKeyboar
 
 
 def notify_keyboard(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="👀 Посмотреть", callback_data=f"seeMessage_{doctor_id}_{patient_id}")
-    ]])
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👀 Посмотреть", callback_data=f"seeMessage_{doctor_id}_{patient_id}")]
+    ])
+
+
+def kb_doctor_reply_or_postpone(patient_id: int, consult_id: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Ответить", callback_data=f"doctorReply_{patient_id}_{consult_id}"),
+                InlineKeyboardButton(text="Отложить консультацию",
+                                     callback_data=f"doctorPostpone_{patient_id}_{consult_id}")
+            ]
+        ]
+    )
+    return kb
+
+
+def kb_doctor_reply_or_view(patient_id: int, consult_id: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Ответить",
+                    callback_data=f"doctorReply_{patient_id}_{consult_id}"
+                ),
+                InlineKeyboardButton(
+                    text="Посмотреть консультацию",
+                    callback_data=f"doctorViewConsult_{patient_id}_{consult_id}"
+                )
+            ]
+        ]
+    )
+    return kb
+
+
+def kb_patient_conversation_nav(doctor_id: int, patient_id: int, page: int, total_pages: int) -> InlineKeyboardMarkup:
+    prev_page = max(1, page - 1)
+    next_page = min(total_pages, page + 1)
+    buttons = []
+    buttons.append([InlineKeyboardButton(text='⬅️', callback_data=f'convPatient_{doctor_id}_{patient_id}_{prev_page}'),
+                    InlineKeyboardButton(text=f'{page} из {total_pages}', callback_data='tempButton'),
+                    InlineKeyboardButton(text='➡️', callback_data=f'convPatient_{doctor_id}_{patient_id}_{next_page}')])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def make_see_message_keyboard(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Ответить", callback_data=f"replyMessage_{doctor_id}_{patient_id}")],
+        [InlineKeyboardButton(text="📂 Посмотреть консультацию",
+                              callback_data=f"seeConsultation_{doctor_id}_{patient_id}")]
+    ])
+
+
+def make_consultation_keyboard(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Ответить", callback_data=f"replyMessage_{doctor_id}_{patient_id}")],
+        [InlineKeyboardButton(text="✅ Завершить консультацию",
+                              callback_data=f"endConsultation_{doctor_id}_{patient_id}")]
+    ])
+
+
+def see_message_keyboard(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Ответить", callback_data=f"replyMessage_{doctor_id}_{patient_id}")],
+        [InlineKeyboardButton(text="📂 Посмотреть консультацию",
+                              callback_data=f"seeConsultation_{doctor_id}_{patient_id}")]
+    ])
+
+
+def consultation_keyboard(doctor_id: int, patient_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Ответить", callback_data=f"replyMessage_{doctor_id}_{patient_id}")],
+        [InlineKeyboardButton(text="✅ Завершить консультацию",
+                              callback_data=f"endConsultation_{doctor_id}_{patient_id}")]
+    ])
 
 
 async def getKeyboardCountryOrCity(place, callback):
@@ -80,6 +153,12 @@ async def getKeyboardForContracts(list):
                 InlineKeyboardButton(text=f'{i + 1}. Даю согласие ❌', callback_data=listCrossToString(list, i)))
 
     return keyboard.as_markup()
+
+
+def doctor_notify_keyboard(patient_id: int, consult_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="👀 Посмотреть", callback_data=f"seePatientMessage_{patient_id}_{consult_id}")
+    ]])
 
 
 faqKeyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -309,8 +388,10 @@ async def getKeyboardFirstMessageSendTrueOrFalse(doctor_id, consultation, id, sp
     if consultation == 'JustAsk':
         keyboard.row(InlineKeyboardButton(text='Да', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
     else:
-        keyboard.row(InlineKeyboardButton(text='Отправить', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
-    keyboard.row(InlineKeyboardButton(text='Назад', callback_data=f'sendNotTrue_{consultation}_{doctor_id}_{id}_{specialty}'))
+        keyboard.row(
+            InlineKeyboardButton(text='Отправить', callback_data=f'send{consultation}_{doctor_id}_{id}_{specialty}'))
+    keyboard.row(
+        InlineKeyboardButton(text='Назад', callback_data=f'sendNotTrue_{consultation}_{doctor_id}_{id}_{specialty}'))
     return keyboard.as_markup()
 
 

@@ -6,13 +6,13 @@ import asyncio
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.businessLogic.logicConsultation import ChatPatient
+from app.user.doctor.handlerDoctorConsultations import ChatPatient
 from run import bot
 
 router = Router()
 
 from app.database.requests import requestsHistoryMessage, requestsHistoryConsultation, requestsDoctor, \
-    requestsSpecialty, requestsMessageToSend, requestsBundle
+    requestsSpecialty, requestsMessageToSend, requestsBundle, requestsUser
 from app.keyboards import kbInline, kbReply
 from app.businessLogic import logicConsultation
 from config import type_consultation
@@ -107,6 +107,80 @@ async def callback_history_consultation(callback: CallbackQuery):
     builder.adjust(1)
 
     await callback.message.answer("Действия с консультацией:", reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data.startswith("history_continue_"))
+async def callback_continue_consultation(callback: CallbackQuery, state: FSMContext):
+    consult_id = int(callback.data.split("_")[2])
+    consultation = await requestsHistoryConsultation.get_consultation(consult_id)
+    messages = await requestsHistoryMessage.get_messages_by_consultation_id(consult_id)
+
+    text = f"<b>Консультация с {consultation.doctor_id}</b>\n"
+    for msg in messages:
+        patient = await requestsUser.get_user_by_id(msg.patient_id)
+        sender_info = f"{patient.gender}, {patient.age} лет, {patient.city}"
+        if msg.media_type == "text":
+            text += f"\n<b>{sender_info}:</b> {msg.text}\n"
+
+    await callback.message.edit_text(text, parse_mode="html")
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Ответить", callback_data=f"reply_to_doctor_{consult_id}")
+    builder.button(text="Отложить консультацию", callback_data=f"postpone_{consult_id}")
+    builder.adjust(1)
+    await callback.message.answer("Действия:", reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data.startswith("reply_to_doctor_"))
+async def callback_reply_to_doctor(callback: CallbackQuery, state: FSMContext):
+    consult_id = int(callback.data.split("_")[3])
+    consultation = await requestsHistoryConsultation.get_consultation(consult_id)
+
+    await state.set_state(ChatPatient.replyToDoctor)
+    await state.update_data(consult_id=consult_id, doctor_id=consultation.doctor_id)
+    await callback.message.answer("✍️ Напишите ваш ответ врачу:")
+
+
+@router.message(ChatPatient.replyToDoctor)
+async def message_reply_to_doctor(message: Message, state: FSMContext):
+    data = await state.get_data()
+    doctor_id = data["doctor_id"]
+    consult_id = data["consult_id"]
+    patient_id = message.from_user.id
+
+    await requestsHistoryMessage.add_message(
+        id_consultation=consult_id,
+        patient_id=patient_id,
+        doctor_id=doctor_id,
+        who_write="patient",
+        text=message.text,
+        media_type="text",
+        media_id=''
+    )
+
+    patient = await requestsUser.get_user_by_id(patient_id)
+    header = f"{patient.gender}, {patient.age} лет, {patient.city}\n"
+    await bot.send_message(doctor_id, header + message.text)
+
+    await message.answer("Сообщение отправлено врачу.")
+    await state.clear()
+
+
+@router.callback_query(F.data.startswith("viewPatientMessage_"))
+async def callback_view_patient_message(callback):
+    patient_id, consult_id = map(int, callback.data.split("_")[1:3])
+
+    await logicConsultation.show_patient_message(callback, patient_id, consult_id)
+
+
+@router.callback_query(F.data.startswith("doctorReply_"))
+async def callback_doctor_reply(callback, state: FSMContext):
+    patient_id, consult_id = map(int, callback.data.split("_")[1:3])
+
+    await state.set_state(ChatPatient.openDialog)
+    await state.update_data(patient_id=patient_id, consult_id=consult_id)
+
+    await callback.message.answer("✍️ Напишите ваш ответ пациенту:")
 
 
 # @router.message(F.text == 'История консультаций')
@@ -207,7 +281,6 @@ async def callback_history_consultation(callback: CallbackQuery):
                 await callback.message.answer_media_group(media=mediaGroup)
         await asyncio.sleep(0.5)
 
-    # Кнопки действий: продолжить / новый вопрос / назад
     is_continuable = consultation.chat_type in ['mainFirst', 'mainRepeated']
     await callback.message.answer(
         'Выберите действие:',
@@ -398,7 +471,7 @@ async def callback_reply_doctor(callback: CallbackQuery, state: FSMContext):
     await requestsBundle.edit_is_open_dialog_patient(patient_id, doctor_id, True)
 
     await state.set_state(ChatPatient.openDialog)
-    await state.update_data(doctor_id=doctor_id, chat_type=chat_type)
+    await state.update_data(doctor_id=doctor_id, patient_id=patient_id, chat_type=chat_type)
 
     await callback.message.answer(
         f"Вы открыли чат с доктором. Тип: {type_consultation[chat_type]}\nНапишите ваш ответ:",

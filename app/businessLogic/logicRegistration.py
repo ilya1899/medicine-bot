@@ -2,14 +2,32 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
+from app.database.models import User
 from app.keyboards import kbInline
 from app.database.requests import requestsUser, requestsCountry, requestsCity, requestsDoctor
 
 
 class EditUser(StatesGroup):
+    setFullName = State()
+    setGender = State()
     setAge = State()
     setCountry = State()
     setCity = State()
+
+
+async def regFullName(message: Message, state: FSMContext):
+    full_name = message.text.strip()
+    if len(full_name) < 2:
+        await message.answer("⚠️ Имя слишком короткое, попробуйте ещё раз.")
+        return
+
+    await state.update_data(full_name=full_name)
+    await state.set_state(EditUser.setGender)
+
+    await message.answer(
+        "Выберите ваш пол:",
+        reply_markup=kbInline.regChooseGender
+    )
 
 
 async def regGender(callback: CallbackQuery, state: FSMContext):
@@ -75,6 +93,7 @@ async def regCityOwn(message: Message, state: FSMContext):
 3. <b><a href="https://docs.google.com/document/d/1sveSZuZAzp5Wp4AnBXp2faUh1Zz6uPvS42Yq_NaflPg/edit?tab=t.0">Политика конфиденциальности</a></b>
 ''', reply_markup=await kbInline.getKeyboardForContracts([False, False, False]), parse_mode='html')
 
+
 async def trueRegistration(callback, doctor_id, index, id):
     doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
     consultation_price = 'от ' + str(int(min(doctor.price_main_first, doctor.price_main_repeated) * 1.2)) + ' руб.'
@@ -97,6 +116,7 @@ async def trueRegistration(callback, doctor_id, index, id):
                                                             False),
         parse_mode='html')
 
+
 async def cross(callback: CallbackQuery, state: FSMContext):
     string = callback.data.split('_')[2:]
     number = int(callback.data.split('_')[1])
@@ -110,5 +130,14 @@ async def cross(callback: CallbackQuery, state: FSMContext):
 ''', reply_markup=await kbInline.getKeyboardForContracts(listCross), parse_mode='html')
     if listCross[0] and listCross[1] and listCross[2]:
         data = await state.get_data()
-        await requestsUser.add_user(callback.from_user.id, data['gender'], data['age'], data['country'], data['city'])
+        user = User(
+            user_id=callback.from_user.id,
+            full_name=data['full_name'],
+            gender=data['gender'],
+            age=data['age'],
+            city=data['city'],
+            country=data['country']
+        )
+
+        await requestsUser.add_user(user)
         await trueRegistration(callback, data['doctor_id'], data['index'], data['specialty'])

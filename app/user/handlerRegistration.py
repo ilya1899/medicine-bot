@@ -1,6 +1,5 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 router = Router()
@@ -8,6 +7,9 @@ router = Router()
 from app.businessLogic import logicRegistration
 from app.businessLogic.logicRegistration import EditUser
 
+@router.message(EditUser.setFullName)
+async def regFullName(message: Message, state: FSMContext):
+    await logicRegistration.regFullName(message, state)
 
 @router.callback_query(F.data.startswith('regGender_'))
 async def callback_regGender(callback: CallbackQuery, state: FSMContext):
