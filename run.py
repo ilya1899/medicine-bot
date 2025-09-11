@@ -30,6 +30,7 @@ from app.database import models
 
 from app.user import handlerCommand, handlerRegistration, handlerFAQ, handlerAboutUs, handlerSupportProject, \
     handlerConsultation, handlerReview, handlerCooperation, handlerHistory
+
 from app.user.doctor import handlerDoctorConsultations, handlerPersonalAccount, handlerDoctor
 from app.user.admin import handlerAdmin, handlerEditDoctors, handlerStatistics, handlerSpecialties, \
     handlerPhotoAndFile, handlerFeedback, handlerMailing, handlerLastMessage

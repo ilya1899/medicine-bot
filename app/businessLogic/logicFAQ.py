@@ -2,7 +2,7 @@ from aiogram.types import Message, CallbackQuery
 
 
 from app.keyboards import kbInline
-from texts import faq
+from texts import FAQ_TEXTS
 
 
 
@@ -14,7 +14,7 @@ async def returnToFAQ(callback: CallbackQuery):
 
 async def c_FAQ(callback: CallbackQuery):
     number = int(callback.data.split('_')[2])
-    await callback.message.edit_text(faq[number - 1], parse_mode='html', reply_markup=await kbInline.getKeyboardForFAQ(number))
+    await callback.message.edit_text(FAQ_TEXTS[number - 1], parse_mode='html', reply_markup=await kbInline.getKeyboardForFAQ(number))
 
 
 

@@ -69,41 +69,54 @@ async def get_last_id_consultation(patient_id: int):
 
 
 async def get_messages_by_consultation_id(consultation_id: int):
-    async with async_session() as session:
-        messages = (await session.scalars(
-            select(HistoryMessage)
-            .where(HistoryMessage.id_consultation == consultation_id)
-            .order_by(HistoryMessage.id)
-        )).all()
-        return messages
+    try:
+        async with async_session() as session:
+            messages = (await session.scalars(
+                select(HistoryMessage)
+                .where(HistoryMessage.id_consultation == consultation_id)
+                .order_by(HistoryMessage.id)
+            )).all()
+            return messages if messages else []
+    except Exception as e:
+        print(f"Error in get_messages_by_consultation_id: {e}")
+        return []
 
 
 async def get_latest_consultation(doctor_id: int, patient_id: int):
-    async with async_session() as session:
-        result = await session.scalars(
-            select(HistoryConsultation)
-            .where(
-                HistoryConsultation.doctor_id == doctor_id,
-                HistoryConsultation.patient_id == patient_id
+    try:
+        async with async_session() as session:
+            result = await session.scalars(
+                select(HistoryConsultation)
+                .where(
+                    HistoryConsultation.doctor_id == doctor_id,
+                    HistoryConsultation.patient_id == patient_id
+                )
+                .order_by(desc(HistoryConsultation.id))
+                .limit(1)
             )
-            .order_by(desc(HistoryConsultation.id))
-            .limit(1)
-        )
-        return result.first()
+            return result.first()
+    except Exception as e:
+        print(f"Error in get_latest_consultation: {e}")
+        return None
 
 
 async def get_consultation_messages(doctor_id: int, patient_id: int):
-    consultation = await get_latest_consultation(doctor_id, patient_id)
-    if not consultation:
-        return []
+    try:
+        consultation = await get_latest_consultation(doctor_id, patient_id)
+        if not consultation:
+            return []
 
-    async with async_session() as session:
-        result = await session.scalars(
-            select(HistoryMessage)
-            .where(HistoryMessage.id_consultation == consultation.id)
-            .order_by(HistoryMessage.id.asc())
-        )
-        return result.all()
+        async with async_session() as session:
+            result = await session.scalars(
+                select(HistoryMessage)
+                .where(HistoryMessage.id_consultation == consultation.id)
+                .order_by(HistoryMessage.id.asc())
+            )
+            messages = result.all()
+            return messages if messages else []
+    except Exception as e:
+        print(f"Error in get_consultation_messages: {e}")
+        return []
 
 
 async def close_consultation(doctor_id: int, patient_id: int):

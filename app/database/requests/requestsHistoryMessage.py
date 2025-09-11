@@ -29,11 +29,16 @@ async def get_message(id: int):
 
 
 async def get_all_messages_by_consultation_id(id_consultation: int):
-    async with async_session() as session:
-        messages = await session.scalars(select(HistoryMessage)
-                                         .where(HistoryMessage.id_consultation == id_consultation)
-                                         .order_by(HistoryMessage.id))
-        return messages.all()
+    try:
+        async with async_session() as session:
+            messages = await session.scalars(select(HistoryMessage)
+                                             .where(HistoryMessage.id_consultation == id_consultation)
+                                             .order_by(HistoryMessage.id))
+            result = messages.all()
+            return result if result else []
+    except Exception as e:
+        print(f"Error in get_all_messages_by_consultation_id: {e}")
+        return []
 
 
 async def get_last_message_for_patient(doctor_id: int, patient_id: int):
@@ -71,12 +76,3 @@ async def get_patient_info(patient_id: int):
             select(User).where(User.user_id == patient_id)
         )
         return result.scalar()
-
-async def get_messages_by_consultation_id(consultation_id: int):
-    async with async_session() as session:
-        result = await session.execute(
-            select(HistoryMessage)
-            .where(HistoryMessage.id_consultation == consultation_id)
-            .order_by(HistoryMessage.id.asc())
-        )
-        return result.scalars().all()

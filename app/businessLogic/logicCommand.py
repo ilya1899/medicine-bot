@@ -30,3 +30,31 @@ async def returnToMenu(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await callback.message.answer('Вы вернулись в главное меню',
                                   reply_markup=await kbReply.kbPatientMain(callback.from_user.id))
+
+
+async def unknown_message(message: Message, state: FSMContext):
+    """Обработчик для неизвестных сообщений"""
+    await state.clear()
+    await message.answer(
+        '❌ Что-то пошло не так. Пожалуйста, используйте кнопки меню для навигации.',
+        reply_markup=await kbReply.kbPatientMain(message.from_user.id)
+    )
+
+
+async def unknown_callback(callback: CallbackQuery, state: FSMContext):
+    """Обработчик для неизвестных callback запросов"""
+    await state.clear()
+    await callback.answer('❌ Что-то пошло не так. Пожалуйста, используйте кнопки меню для навигации.')
+    await callback.message.answer(
+        '❌ Что-то пошло не так. Пожалуйста, используйте кнопки меню для навигации.',
+        reply_markup=await kbReply.kbPatientMain(callback.from_user.id)
+    )
+
+
+async def unknown_command(message: Message, state: FSMContext):
+    """Обработчик для неизвестных команд"""
+    await state.clear()
+    await message.answer(
+        '❌ Неизвестная команда. Пожалуйста, используйте кнопки меню для навигации.',
+        reply_markup=await kbReply.kbPatientMain(message.from_user.id)
+    )

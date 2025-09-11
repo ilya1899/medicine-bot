@@ -1,5 +1,6 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import asyncio
@@ -24,6 +25,7 @@ from app.database.requests import requestsDoctor, requestsBundle, requestsMessag
 from app.keyboards import kbInline, kbReply
 from run import bot
 from config import type_consultation
+from texts import GENDER_MALE, GENDER_FEMALE, NEW_MESSAGE_FROM_PATIENT, CONSULTATION_NOTIFICATION, NEW_MESSAGE_FROM_DOCTOR
 
 
 @router.message(F.text == 'Консультации')
@@ -31,7 +33,27 @@ async def message_doctorConsultations(message: Message):
     doctor_id = message.from_user.id
     if await requestsDoctor.is_doctor(doctor_id):
         bundles = await requestsBundle.get_bundles_by_doctor_id(doctor_id)
-        await message.answer('Выберите чат', reply_markup=await kbInline.getKeyboardPatients(bundles))
+
+        # Группируем консультации по пациенту
+        patient_to_bundles: dict[int, list] = {}
+        for b in bundles:
+            patient_to_bundles.setdefault(b.patient_id, []).append(b)
+
+        keyboard = InlineKeyboardBuilder()
+
+        # Формируем кнопки: имя пациента; если консультаций >1, добавляем порядковый номер 1,2,3
+        for patient_id, blist in patient_to_bundles.items():
+            user = await requestsUser.get_user_by_id(user_id=patient_id)
+            full_name = user.full_name if user else f"Пациент {patient_id}"
+            count = len(blist)
+            for idx, _ in enumerate(blist, start=1):
+                label = full_name if count == 1 else f"{full_name} {idx}"
+                keyboard.row(InlineKeyboardButton(text=label, callback_data=f'dialogDoctor_{patient_id}'))
+
+        # Кнопка назад
+        keyboard.row(InlineKeyboardButton(text='Назад', callback_data='returnToMenu'))
+
+        await message.answer('Выберите консультацию', reply_markup=keyboard.as_markup())
 
 
 @router.message(F.text == 'Свернуть диалог', ChatDoctor.openDialog)
@@ -170,7 +192,8 @@ async def callback_backNewConsultation(callback: CallbackQuery, state: FSMContex
         await callback.message.answer('Вы вернулись в главное меню', reply_markup=kbReply.kbDoctorMain)
 
 
-async def timerConsultation(patient_id, doctor_id, chat_type):
+async def timer_consultation(patient_id, doctor_id, chat_type):
+    """Timer for consultation - closes consultation after 24 hours"""
     await asyncio.sleep(86400)
     if await requestsBundle.is_bundle(patient_id, doctor_id):
         await requestsBundle.delete_bundle(patient_id, doctor_id)
@@ -180,11 +203,11 @@ async def timerConsultation(patient_id, doctor_id, chat_type):
         await bot.send_message(chat_id=patient_id, text='''<code>Бот</code>
 
 Время истекло, консультация с врачом завершена.''', parse_mode='html',
-                               reply_markup=await kbReply.kbPatientMain(patient_id))
+                                reply_markup=await kbReply.kbPatientMain(patient_id))
 
         await bot.send_message(chat_id=patient_id,
-                               text='Насколько подробно доктор погрузился в суть проблемы, дал исчерпывающий и понятный ответ?',
-                               reply_markup=await kbInline.keyboardStars(doctor_id, 1, chat_type))
+                                text='Насколько подробно доктор погрузился в суть проблемы, дал исчерпывающий и понятный ответ?',
+                                reply_markup=await kbInline.keyboardStars(doctor_id, 1, chat_type))
 
 
 @router.callback_query(F.data == 'deleteMessage', ChatDoctor.openDialog)
@@ -192,81 +215,40 @@ async def callback_deleteMessage(callback: CallbackQuery):
     await callback.message.delete()
 
 
-async def notifyToPatientAboutNewMessage(patient_id: int, doctor_fullname: str, doctor_id: int):
+async def notify_patient_about_new_message(patient_id: int, doctor_fullname: str, doctor_id: int):
+    text = CONSULTATION_NOTIFICATION.format(message=NEW_MESSAGE_FROM_DOCTOR.format(doctor_name=doctor_fullname))
     await bot.send_message(
         chat_id=patient_id,
-        text=f"<code>Консультация</code>\n\nУ вас новое сообщение от <b>{doctor_fullname}</b>!",
+        text=text,
         parse_mode="html",
         reply_markup=kbInline.notify_keyboard(doctor_id, patient_id),
     )
 
 
-@router.callback_query(F.data.startswith("seeMessage_"))
-async def callback_seeMessage(callback: CallbackQuery, state: FSMContext):
-    _, doctor_id, patient_id = callback.data.split("_")
-    doctor_id, patient_id = int(doctor_id), int(patient_id)
+async def notify_doctor_about_new_message(doctor_id: int, patient_id: int, consult_id: int):
+    patient = await requestsUser.get_user_by_id(user_id=patient_id)
+    gender_label = GENDER_MALE if patient.gender == 'male' else GENDER_FEMALE
+    text = NEW_MESSAGE_FROM_PATIENT.format(
+        gender=gender_label,
+        age=patient.age,
+        city=patient.city
+    )
 
-    doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id) if hasattr(requestsDoctor,
-                                                                              "get_doctor_by_user_id") else None
-    doctor_name = (doctor.full_name if doctor and getattr(doctor, "full_name", None) else "Врач")
+    await bot.send_message(
+        chat_id=doctor_id,
+        text=text,
+        parse_mode='html',
+        reply_markup=kbInline.doctor_notify_keyboard(patient_id, consult_id)
+    )
 
-    last_message = await requestsHistoryMessage.get_last_message_for_patient(doctor_id, patient_id)
-    if not last_message:
-        await callback.answer("Сообщений пока нет", show_alert=True)
-        return
 
-    header = f"<b>{doctor_name}</b>\n\n"
+@router.callback_query(F.data.startswith("seePatientMessage_"))
+async def callback_seePatientMessage(callback: CallbackQuery, state: FSMContext):
+    """Show conversation with in-message pagination (page 1)."""
+    _, patient_id, consult_id = callback.data.split("_")
+    patient_id, consult_id = int(patient_id), int(consult_id)
 
-    media_type = getattr(last_message, "media_type", None)
-    text = getattr(last_message, "text", "") or ""
-
-    if media_type == "text" or not media_type:
-        consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-        await callback.message.answer(header + text, parse_mode="html",
-                                      reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        return
-
-    if media_type == "photo":
-        consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-        await callback.message.answer_photo(last_message.media_id, caption=header + text, parse_mode="html",
-                                            reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        return
-
-    if media_type == "document":
-        consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-        await callback.message.answer_document(last_message.media_id, caption=header + text, parse_mode="html",
-                                               reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        return
-
-    if media_type == "mediaGroupPhoto":
-        ids = _split_media_ids(last_message.media_id)
-        media = [InputMediaPhoto(media=m) for m in ids]
-        if media:
-            media[0].caption = header + text
-            await callback.message.answer_media_group(media)
-            consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-            await callback.message.answer("⬆️ Последнее сообщение пациента",
-                                          reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        else:
-            consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-            await callback.message.answer(header + text, parse_mode="html",
-                                          reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        return
-
-    if media_type == "mediaGroupDocument":
-        ids = _split_media_ids(last_message.media_id)
-        media = [InputMediaDocument(media=m) for m in ids]
-        if media:
-            media[-1].caption = header + text
-            await callback.message.answer_media_group(media)
-            consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-            await callback.message.answer("⬆️ Последнее сообщение пациента",
-                                          reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        else:
-            consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-            await callback.message.answer(header + text, parse_mode="html",
-                                          reply_markup=kb_doctor_reply_or_view(patient_id, consult_id))
-        return
+    await _open_or_edit_conversation(callback, patient_id, consult_id, page=1)
 
 
 def _split_media_ids(media_id_str: str):
@@ -277,66 +259,83 @@ def _split_media_ids(media_id_str: str):
 
 @router.callback_query(F.data.startswith("seeConsultation_"))
 async def callback_seeConsultation(callback: CallbackQuery, state: FSMContext):
-    _, doctor_id, patient_id = callback.data.split("_")
-    doctor_id, patient_id = int(doctor_id), int(patient_id)
+    """Open consultation with in-message pagination (page 1)."""
+    _, patient_id, consult_id = callback.data.split("_")
+    patient_id, consult_id = int(patient_id), int(consult_id)
 
-    doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id) if hasattr(requestsDoctor,
-                                                                              "get_doctor_by_user_id") else None
-    doctor_name = (doctor.full_name if doctor and getattr(doctor, "full_name", None) else "Врач")
+    await _open_or_edit_conversation(callback, patient_id, consult_id, page=1)
 
-    messages = await requestsHistoryConsultation.get_consultation_messages(doctor_id, patient_id)
-    if not messages:
-        await callback.answer("Переписки пока нет", show_alert=True)
-        return
 
-    await callback.message.answer(f"<b>Консультация с {doctor_name} — история переписки:</b>", parse_mode="html")
-    for message in messages:
-        sender_raw = (message.who_write or "").lower()
-        if sender_raw in ("doctor", "врач", "доктор"):
-            sender_label = doctor_name
-        elif sender_raw in ("patient", "пациент"):
-            sender_label = "Пациент"
-        else:
-            sender_label = (message.who_write or "").capitalize()
+def _format_message_line(msg) -> str:
+    sender = "Пациент" if msg.who_write == "patient" else "Врач"
+    base = f"<b>{sender}:</b> "
+    text = msg.text or ""
+    match msg.media_type:
+        case "text":
+            return base + text
+        case "photo":
+            return base + (text if text else "") + "\n📷 Фото"
+        case "document":
+            return base + (text if text else "") + "\n📎 Документ"
+        case "mediaGroupPhoto":
+            return base + (text if text else "") + "\n🖼️ Альбом фото"
+        case "mediaGroupDocument":
+            return base + (text if text else "") + "\n📁 Альбом файлов"
+        case _:
+            return base + text
 
-        header = f"<b>{sender_label}:</b>\n"
-        media_type = getattr(message, "media_type", None)
-        text = getattr(message, "text", "") or ""
 
-        if media_type == "text" or not media_type:
-            await callback.message.answer(header + text, parse_mode="html")
-            continue
+async def _build_conversation_page_text(patient_id: int, consult_id: int, page: int, page_size: int = 5) -> tuple[str, int, int]:
+    messages = await requestsHistoryMessage.get_all_messages_by_consultation_id(consult_id)
+    total = len(messages)
+    if total == 0:
+        return ("Переписки пока нет", 0, 0)
+    total_pages = total // page_size + (1 if total % page_size else 0)
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * page_size
+    end = min(start + page_size, total)
 
-        if media_type == "photo":
-            await callback.message.answer_photo(message.media_id, caption=header + text, parse_mode="html")
-            continue
+    patient = await requestsUser.get_user_by_id(user_id=patient_id)
+    gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
+    header = f"<b>{gender_label}, {patient.age} лет, {patient.city}</b>\n\n"
 
-        if media_type == "document":
-            await callback.message.answer_document(message.media_id, caption=header + text, parse_mode="html")
-            continue
+    body_lines = [_format_message_line(m) for m in messages[start:end]]
+    body = "\n\n".join(body_lines)
+    footer = f"\n\nСтр. {page}/{total_pages}"
+    return (header + body + footer, page, total_pages)
 
-        if media_type == "mediaGroupPhoto":
-            ids = _split_media_ids(message.media_id)
-            media = [InputMediaPhoto(media=m) for m in ids]
-            if media:
-                media[0].caption = header + text
-                await callback.message.answer_media_group(media)
-            else:
-                await callback.message.answer(header + text, parse_mode="html")
-            continue
 
-        if media_type == "mediaGroupDocument":
-            ids = _split_media_ids(message.media_id)
-            media = [InputMediaDocument(media=m) for m in ids]
-            if media:
-                media[-1].caption = header + text
-                await callback.message.answer_media_group(media)
-            else:
-                await callback.message.answer(header + text, parse_mode="html")
-            continue
+def _conversation_nav_kb(patient_id: int, consult_id: int, page: int, total_pages: int) -> InlineKeyboardMarkup:
+    prev_page = max(1, page - 1)
+    next_page = min(total_pages, page + 1)
+    buttons = [
+        [
+            InlineKeyboardButton(text='⏮️ Назад', callback_data=f'conv_nav_{patient_id}_{consult_id}_{prev_page}'),
+            InlineKeyboardButton(text='⏭️ Вперёд', callback_data=f'conv_nav_{patient_id}_{consult_id}_{next_page}'),
+        ],
+        [
+            InlineKeyboardButton(text='Ответить', callback_data=f'doctorReply_{patient_id}_{consult_id}'),
+            InlineKeyboardButton(text='Отложить консультацию', callback_data=f'doctorPostpone_{patient_id}_{consult_id}'),
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
-    await callback.message.answer("Выберите действие:", reply_markup=kb_doctor_reply_or_postpone(patient_id, consult_id))
+
+async def _open_or_edit_conversation(callback: CallbackQuery, patient_id: int, consult_id: int, page: int):
+    text, page, total_pages = await _build_conversation_page_text(patient_id, consult_id, page)
+    kb = _conversation_nav_kb(patient_id, consult_id, page, total_pages)
+    # Edit the same message in place
+    await callback.message.edit_text(text=text, reply_markup=kb, parse_mode='html')
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith('conv_nav_'))
+async def callback_conv_nav(callback: CallbackQuery):
+    _, _, patient_id, consult_id, page = callback.data.split('_')
+    patient_id = int(patient_id)
+    consult_id = int(consult_id)
+    page = int(page)
+    await _open_or_edit_conversation(callback, patient_id, consult_id, page)
 
 
 @router.callback_query(F.data.startswith("doctorReply_"))
@@ -348,13 +347,42 @@ async def callback_doctor_reply(callback: CallbackQuery, state: FSMContext):
     await requestsBundle.edit_is_open_dialog_doctor(patient_id, doctor_id, True)
     chat_type = await requestsBundle.get_chat_type(patient_id, doctor_id)
 
+    # Fix KeyError by providing default value
+    consultation_type = type_consultation.get(chat_type, "Неизвестный тип")
+    
     keyboard = kbReply.kbDoctorDialog1 if chat_type in ['justAsk', 'secondOpinion'] else kbReply.kbDoctorDialog2
 
     await callback.message.answer(
-        f"Вы открыли чат с пациентом, тип консультации: {type_consultation[chat_type]}",
+        f"Вы открыли чат с пациентом, тип консультации: {consultation_type}",
         reply_markup=keyboard
     )
 
+    # Show pending messages from patient with context
+    if await requestsMessageToSend.is_message_to_send(patient_id, doctor_id):
+        patient = await requestsUser.get_user_by_id(user_id=patient_id)
+        messages = await requestsMessageToSend.get_messages_to_send(patient_id, doctor_id)
+        for messageToSend in messages:
+            gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
+            text = f'''<b>{gender_label}, {patient.age} лет, {patient.city}</b>
+
+{messageToSend.text}'''
+            match messageToSend.media_type:
+                case 'text':
+                    await callback.message.answer(text, parse_mode='html')
+                case 'photo':
+                    await callback.message.answer_photo(photo=messageToSend.media_id, caption=text,
+                                                        parse_mode='html')
+                case 'document':
+                    await callback.message.answer_document(document=messageToSend.media_id, caption=text,
+                                                           parse_mode='html')
+                case 'mediaGroup':
+                    photos = messageToSend.media_id.split(', ')
+                    mediaGroup = [InputMediaPhoto(media=photo, parse_mode='html') for photo in photos]
+                    if messageToSend.text != '':
+                        mediaGroup[0].caption = text
+                    await callback.message.answer_media_group(mediaGroup)
+        await requestsMessageToSend.delete_messages_to_send(patient_id, doctor_id)
+    
     await state.set_state(ChatDoctor.openDialog)
     await state.update_data(patient_id=patient_id, chat_type=chat_type)
     await callback.message.answer("✍️ Напишите ваш ответ и отправьте.")
@@ -406,6 +434,59 @@ async def process_reply_to_doctor_text(message: Message, state: FSMContext):
     await state.clear()
 
 
+@router.message(ChatDoctor.openDialog, F.text)
+async def process_doctor_message_text(message: Message, state: FSMContext):
+    """Handle text messages from doctor to patient"""
+    doctor_id = message.from_user.id
+    data = await state.get_data()
+    patient_id = data.get('patient_id')
+    chat_type = data.get('chat_type')
+    
+    if not patient_id:
+        await message.answer("Ошибка: не найден пациент")
+        return
+    
+    # Get doctor name
+    doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
+    doctor_name = doctor.full_name if doctor else f"Врач {doctor_id}"
+    
+    # Format message with doctor name
+    text = f"<b>{doctor_name}</b>\n\n{message.text}"
+    
+    # Add to history
+    consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
+    await requestsHistoryMessage.add_message(
+        id_consultation=consult_id,
+        patient_id=patient_id,
+        doctor_id=doctor_id,
+        who_write="doctor",
+        text=text,
+        media_type="text",
+        media_id=""
+    )
+    
+    # Send to patient
+    if await requestsBundle.is_bundle(patient_id, doctor_id):
+        if await requestsBundle.is_open_dialog_patient(patient_id, doctor_id):
+            await bot.send_message(chat_id=patient_id, text=text, parse_mode='html')
+        else:
+            await requestsMessageToSend.add_message_to_send(doctor_id, patient_id, text, 'text', '', False)
+            await notify_patient_about_new_message(patient_id, doctor_name, doctor_id)
+    
+    # Handle different consultation types
+    if chat_type in ['justAsk', 'secondOpinion']:
+        await bot.send_message(chat_id=patient_id,
+                               text='Насколько подробно доктор погрузился в суть проблемы, дал исчерпывающий и понятный ответ?',
+                               reply_markup=await kbInline.keyboardStars(doctor_id, 1, chat_type))
+        await message.answer('Ответ отправлен!', reply_markup=kbReply.kbDoctorMain)
+        await requestsMessageToSend.delete_first_message(patient_id, doctor_id)
+        await requestsBundle.delete_bundle(patient_id, doctor_id)
+        await state.clear()
+    else:
+        await asyncio.create_task(timer_consultation(patient_id, doctor_id, chat_type))
+        await message.answer("✅ Ваш ответ отправлен пациенту.")
+
+
 @router.callback_query(F.data.startswith("endConsultation_"))
 async def callback_endConsultation(callback: CallbackQuery, state: FSMContext):
     _, doctor_id, patient_id = callback.data.split("_")
@@ -455,8 +536,8 @@ async def callback_sendMessage(callback: CallbackQuery, state: FSMContext):
                         else:
                             await requestsMessageToSend.add_message_to_send(doctor_id, patient_id, text, 'text', '',
                                                                             False)
-                            await notifyToPatientAboutNewMessage(patient_id, fullName, doctor_id)
-                        await asyncio.create_task(timerConsultation(patient_id, doctor_id, chat_type))
+                            await notify_patient_about_new_message(patient_id, fullName, doctor_id)
+                        await asyncio.create_task(timer_consultation(patient_id, doctor_id, chat_type))
         case 'photo':
             if await requestsBundle.is_bundle(patient_id, doctor_id):
                 match chat_type:
@@ -476,8 +557,8 @@ async def callback_sendMessage(callback: CallbackQuery, state: FSMContext):
                         else:
                             await requestsMessageToSend.add_message_to_send(doctor_id, patient_id, text, 'photo',
                                                                             media_id, False)
-                            await notifyToPatientAboutNewMessage(patient_id, fullName, doctor_id)
-                        await asyncio.create_task(timerConsultation(patient_id, doctor_id, chat_type))
+                            await notify_patient_about_new_message(patient_id, fullName, doctor_id)
+                        await asyncio.create_task(timer_consultation(patient_id, doctor_id, chat_type))
         case 'document':
             if await requestsBundle.is_bundle(patient_id, doctor_id):
                 match chat_type:
@@ -498,8 +579,8 @@ async def callback_sendMessage(callback: CallbackQuery, state: FSMContext):
                         else:
                             await requestsMessageToSend.add_message_to_send(doctor_id, patient_id, text, 'document',
                                                                             media_id, False)
-                            await notifyToPatientAboutNewMessage(patient_id, fullName, doctor_id)
-                        await asyncio.create_task(timerConsultation(patient_id, doctor_id, chat_type))
+                            await notify_patient_about_new_message(patient_id, fullName, doctor_id)
+                        await asyncio.create_task(timer_consultation(patient_id, doctor_id, chat_type))
         case 'mediaGroupPhoto' | 'mediaGroupDocument':
             if media_type == 'mediaGroupPhoto':
                 mediaGroup = [InputMediaPhoto(media=id) for id in media_id.split(', ')]
@@ -524,8 +605,8 @@ async def callback_sendMessage(callback: CallbackQuery, state: FSMContext):
                         else:
                             await requestsMessageToSend.add_message_to_send(doctor_id, patient_id, text, media_type,
                                                                             media_id, False)
-                            await notifyToPatientAboutNewMessage(patient_id, fullName, doctor_id)
-                        await asyncio.create_task(timerConsultation(patient_id, doctor_id, chat_type))
+                            await notify_patient_about_new_message(patient_id, fullName, doctor_id)
+                        await asyncio.create_task(timer_consultation(patient_id, doctor_id, chat_type))
 
     await requestsMessageToRepeat.delete_message_to_repeat_by_id(message_id)
 

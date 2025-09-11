@@ -4,8 +4,6 @@ from aiogram.fsm.state import State, StatesGroup
 import asyncio
 
 from app.businessLogic.logicRegistration import EditUser
-from app.keyboards.kbInline import getKeyboardAcceptPayment, doctor_notify_keyboard
-from app.keyboards import kbInline
 
 
 class AttachFile(StatesGroup):
@@ -94,8 +92,14 @@ async def continueConsultationDoctor(callback: CallbackQuery, state: FSMContext)
     await callback.message.delete()
     await callback.message.answer(f'Вы открыли чат с доктором, тип консультации: {type_consultation[chat_type]}',
                                   reply_markup=keyboard)
-    # Show first page of conversation history (pagination like notifications)
-    await show_patient_conversation_paginated(callback.message, doctor_id, patient_id, page=1)
+    
+    # Show conversation history if it exists
+    try:
+        await show_patient_conversation_paginated(callback.message, doctor_id, patient_id, page=1)
+    except Exception as e:
+        print(f"Error showing conversation history: {e}")
+        # If there's an error, just continue without showing history
+    
     if await requestsMessageToSend.is_message_to_send(doctor_id, patient_id):
         messages = await requestsMessageToSend.get_messages_to_send(doctor_id, patient_id)
         for messageToSend in messages:
@@ -729,9 +733,19 @@ async def sendFirstMessage(callback: CallbackQuery, chat_type: str, state: FSMCo
         id_consultation = await requestsHistoryConsultation.get_last_id_consultation(patient_id)
 
         await requestsBundle.add_bundle(patient_id, doctor_id, chat_type, id_consultation)
-        await bot.send_message(chat_id=doctor_id, text='''<code>Бот</code>
+        # Get patient info for notification
+        patient = await requestsUser.get_user_by_id(user_id=patient_id)
+        gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
+        patient_text = data.get('text', '')
+        
+        # Send notification with patient context
+        notification_text = f'''<code>Бот</code>
 
-У вас новая консультация!''', parse_mode='html', reply_markup=await kbInline.getKeyboardSee(patient_id))
+Новая консультация от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
+Вопрос: {patient_text}'''
+        
+        await bot.send_message(chat_id=doctor_id, text=notification_text, parse_mode='html', 
+                              reply_markup=kbInline.doctor_notify_keyboard(patient_id, id_consultation))
 
         keyboard = await kbReply.kbPatientMain(patient_id) if chat_type in ['justAsk',
                                                                             'secondOpinion'] else kbReply.kbPatientDialog
@@ -878,9 +892,19 @@ async def consultationAcceptPayment(callback: CallbackQuery):
     await requestsBundle.edit_is_open_dialog_patient(patient_id, doctor_id, True)
     await callback.message.delete()
 
-    await bot.send_message(chat_id=doctor_id, text='''<code>Бот</code>
+    # Get patient info for notification
+    patient = await requestsUser.get_user_by_id(user_id=patient_id)
+    gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
+    patient_text = data.get('text', '')
+    
+    # Send notification with patient context
+    notification_text = f'''<code>Бот</code>
 
-У вас новая консультация!''', parse_mode='html', reply_markup=await kbInline.getKeyboardSee(patient_id))
+Новая консультация от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
+Вопрос: {patient_text}'''
+    
+    await bot.send_message(chat_id=doctor_id, text=notification_text, parse_mode='html', 
+                          reply_markup=kbInline.doctor_notify_keyboard(patient_id, id_consultation))
 
     if chat_type in ['decoding', 'mainFirst', 'mainRepeated']:
         await state_user.set_state(ChatPatient.openDialog)
@@ -1285,16 +1309,21 @@ async def deleteMessage(callback: CallbackQuery):
     await callback.message.delete()
 
 
-async def notifyToDoctorAboutNewMessage(doctor_id: int, patient_id: int, consult_id: int):
+async def notify_doctor_about_new_message(doctor_id: int, patient_id: int, consult_id: int):
     patient = await requestsUser.get_user_by_id(user_id=patient_id)
-    gender_label = 'Мужчина' if patient.gender == 'male' else 'Женщина'
-    text = f"Новое сообщение от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>"
+    gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
+    
+    # Get the last message from patient
+    last_message = await requestsMessageToSend.get_first_message_to_send(patient_id, doctor_id)
+    message_text = last_message.text if last_message else ""
+    
+    text = f"Новое сообщение от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>\n\n{message_text}"
 
     await bot.send_message(
         chat_id=doctor_id,
         text=text,
         parse_mode='html',
-        reply_markup=doctor_notify_keyboard(patient_id, consult_id)
+        reply_markup=kbInline.doctor_notify_keyboard(patient_id, consult_id)
     )
 
 
@@ -1333,45 +1362,79 @@ async def show_patient_message(callback, patient_id, consult_id):
     )
 
 
-async def show_patient_conversation_paginated(message_or_cb_msg, doctor_id: int, patient_id: int, page: int = 1,
+async def show_patient_conversation_paginated(message_or_callback, doctor_id: int, patient_id: int, page: int = 1,
                                               page_size: int = 5):
     from app.database.requests import requestsHistoryConsultation
-    messages = await requestsHistoryConsultation.get_consultation_messages(doctor_id, patient_id)
-    if not messages:
-        return
-    total = len(messages)
-    total_pages = total // page_size + (1 if total % page_size else 0)
-    page = max(1, min(page, total_pages))
-    start = (page - 1) * page_size
-    end = min(start + page_size, total)
-    chunk = messages[start:end]
+    try:
+        # Определяем, что передано - сообщение или callback
+        if isinstance(message_or_callback, CallbackQuery):
+            message = message_or_callback.message
+            callback = message_or_callback
+        else:
+            message = message_or_callback
+            callback = None
 
-    for msg in chunk:
-        sender = "Пациент" if msg.who_write == "patient" else "Врач"
-        prefix = f"{sender}: "
-        if msg.media_type == "text":
-            await message_or_cb_msg.answer(prefix + (msg.text or ""), parse_mode='html')
-        elif msg.media_type == "photo":
-            await message_or_cb_msg.answer_photo(photo=msg.media_id, caption=prefix + (msg.text or ""))
-        elif msg.media_type == "document":
-            await message_or_cb_msg.answer_document(document=msg.media_id, caption=prefix + (msg.text or ""))
-        elif msg.media_type in ("mediaGroupPhoto", "mediaGroupDocument"):
-            parts = (msg.media_id or "").split(", ")
-            if msg.media_type == "mediaGroupPhoto":
-                media = [InputMediaPhoto(media=p) for p in parts]
-                if media:
-                    media[0].caption = prefix + (msg.text or "")
-            else:
-                media = [InputMediaDocument(media=p) for p in parts]
-                if media:
-                    media[-1].caption = prefix + (msg.text or "")
-            if media:
-                await message_or_cb_msg.answer_media_group(media=media)
+        messages = await requestsHistoryConsultation.get_consultation_messages(doctor_id, patient_id)
+        if not messages:
+            if callback:
+                await callback.answer('Нет сообщений в истории')
+            return
 
-    await message_or_cb_msg.answer(
-        "Навигация по диалогу:",
-        reply_markup=kbInline.kb_patient_conversation_nav(doctor_id, patient_id, page, total_pages)
-    )
+        total = len(messages)
+        total_pages = total // page_size + (1 if total % page_size else 0)
+        page = max(1, min(page, total_pages))
+        start = (page - 1) * page_size
+        end = min(start + page_size, total)
+        chunk = messages[start:end]
+
+        # Формируем текстовую историю
+        history_text = f"📋 <b>История сообщений (страница {page}/{total_pages})</b>:\n\n"
+
+        for i, msg in enumerate(chunk, start + 1):
+            sender = "👤 Пациент" if msg.who_write == "patient" else "👨‍⚕️ Врач"
+            timestamp = msg.created_at.strftime("%d.%m %H:%M") if hasattr(msg, 'created_at') and msg.created_at else ""
+
+            history_text += f"<b>{i}. {sender}</b> {timestamp}:\n"
+            if msg.media_type != "text":
+                media_type_emoji = "🖼️" if "photo" in msg.media_type else "📄" if "document" in msg.media_type else "📎"
+                history_text += f"   {media_type_emoji} <i>Медиафайл</i>\n"
+            if msg.text:
+                # Обрезаем длинный текст
+                text_preview = (msg.text[:97] + "...") if len(msg.text) > 100 else msg.text
+                history_text += f"   {text_preview}\n"
+            history_text += "\n"
+
+        # Для callback - редактируем сообщение
+        if callback:
+            try:
+                await message.edit_text(
+                    history_text,
+                    reply_markup=kbInline.kb_patient_conversation_nav(doctor_id, patient_id, page, total_pages),
+                    parse_mode='HTML'
+                )
+            except Exception as edit_error:
+                # Если не получается отредактировать, отправляем новое
+                try:
+                    await message.delete()
+                except:
+                    pass
+                new_message = await message.answer(
+                    history_text,
+                    reply_markup=kbInline.kb_patient_conversation_nav(doctor_id, patient_id, page, total_pages),
+                    parse_mode='HTML'
+                )
+        else:
+            # Для обычного сообщения - отправляем новое
+            await message.answer(
+                history_text,
+                reply_markup=kbInline.kb_patient_conversation_nav(doctor_id, patient_id, page, total_pages),
+                parse_mode='HTML'
+            )
+
+    except Exception as e:
+        print(f"Error in show_patient_conversation_paginated: {e}")
+        if callback:
+            await callback.answer('Ошибка загрузки истории')
 
 
 async def sendMessage(callback: CallbackQuery):
@@ -1398,7 +1461,7 @@ async def sendMessage(callback: CallbackQuery):
                     await bot.send_message(chat_id=doctor_id, text=text, parse_mode='html')
                 else:
                     await requestsMessageToSend.add_message_to_send(patient_id, doctor_id, text, 'text', '', False)
-                    await notifyToDoctorAboutNewMessage(doctor_id, patient_id, consult_id)
+                    await notify_doctor_about_new_message(doctor_id, patient_id, consult_id)
         case 'photo':
             if await requestsBundle.is_bundle(patient_id, doctor_id):
                 if await requestsBundle.is_open_dialog_doctor(patient_id, doctor_id):
@@ -1406,7 +1469,7 @@ async def sendMessage(callback: CallbackQuery):
                 else:
                     await requestsMessageToSend.add_message_to_send(patient_id, doctor_id, text, 'photo', media_id,
                                                                     False)
-                    await notifyToDoctorAboutNewMessage(doctor_id, patient_id, consult_id)
+                    await notify_doctor_about_new_message(doctor_id, patient_id, consult_id)
         case 'document':
             if await requestsBundle.is_bundle(patient_id, doctor_id):
                 if await requestsBundle.is_open_dialog_doctor(patient_id, doctor_id):
@@ -1414,7 +1477,7 @@ async def sendMessage(callback: CallbackQuery):
                 else:
                     await requestsMessageToSend.add_message_to_send(patient_id, doctor_id, text, 'document', media_id,
                                                                     False)
-                    await notifyToDoctorAboutNewMessage(doctor_id, patient_id, consult_id)
+                    await notify_doctor_about_new_message(doctor_id, patient_id, consult_id)
         case 'mediaGroupPhoto' | 'mediaGroupDocument':
             if media_type == 'mediaGroupPhoto':
                 mediaGroup = [InputMediaPhoto(media=id, parse_mode='html') for id in media_id.split(', ')]
@@ -1429,7 +1492,7 @@ async def sendMessage(callback: CallbackQuery):
                 else:
                     await requestsMessageToSend.add_message_to_send(patient_id, doctor_id, text, media_type, media_id,
                                                                     False)
-                    await notifyToDoctorAboutNewMessage(doctor_id, patient_id, consult_id)
+                    await notify_doctor_about_new_message(doctor_id, patient_id, consult_id)
 
     await requestsMessageToRepeat.delete_message_to_repeat_by_id(message_id)
 
