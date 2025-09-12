@@ -826,7 +826,7 @@ async def consultationTruePayment(message: Message, state: FSMContext):
 
     price = await getPrice(doctor_id, chat_type)
     if message.document:
-        await bot.send_document(chat_id=1441100175, document=message.document.file_id,
+        await bot.send_document(chat_id=admin_group_id, document=message.document.file_id,
 
                                 caption=f'''Пациент <code>{patient_id}</code> произвел оплату на сумму: {int(price * 1.2)} руб.
         Тип консультации: {type_consultation[chat_type]}
