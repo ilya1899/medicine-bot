@@ -145,6 +145,17 @@ async def callback_dialogDoctor(callback: CallbackQuery, state: FSMContext):
                         mediaGroup[0].caption = messageToSend.text
                     await callback.message.answer_media_group(mediaGroup)
         await requestsMessageToSend.delete_messages_to_send(patient_id, doctor_id)
+    
+    # Add reply/delete buttons for doctor
+    consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
+    reply_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text='✍️ Ответить', callback_data=f'doctorReply_{patient_id}_{consult_id}'),
+            InlineKeyboardButton(text='🗑️ Удалить', callback_data='deleteMessage')
+        ]
+    ])
+    await callback.message.answer('Выберите действие:', reply_markup=reply_keyboard)
+    
     await state.set_state(ChatDoctor.openDialog)
     await state.update_data(patient_id=patient_id, chat_type=chat_type)
 
@@ -228,11 +239,16 @@ async def notify_patient_about_new_message(patient_id: int, doctor_fullname: str
 async def notify_doctor_about_new_message(doctor_id: int, patient_id: int, consult_id: int):
     patient = await requestsUser.get_user_by_id(user_id=patient_id)
     gender_label = GENDER_MALE if patient.gender == 'male' else GENDER_FEMALE
-    text = NEW_MESSAGE_FROM_PATIENT.format(
-        gender=gender_label,
-        age=patient.age,
-        city=patient.city
-    )
+    
+    # Get the last message from patient for context
+    last_message = await requestsMessageToSend.get_first_message_to_send(patient_id, doctor_id)
+    message_text = last_message.text if last_message else "Новое сообщение"
+    
+    text = f'''<code>Бот</code>
+
+Новое сообщение от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
+
+{message_text}'''
 
     await bot.send_message(
         chat_id=doctor_id,
