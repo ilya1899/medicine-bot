@@ -11,7 +11,6 @@ async def add_doctor(user_id: int, full_name: str, country: str, city: str, spec
                      bank_details_russia: str, bank_details_abroad: str):
     async with async_session() as session:
 
-
         session.add(Doctor(user_id=user_id, full_name=full_name, country=country, city=city, specialty=specialty,
                            work_experience=work_experience, education_data=education_data, education=education,
                            resume=resume,
