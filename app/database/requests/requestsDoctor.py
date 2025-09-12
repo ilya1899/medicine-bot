@@ -5,7 +5,7 @@ from app.database.models import async_session, Doctor
 
 async def add_doctor(user_id: int, full_name: str, country: str, city: str, specialty: str, work_experience: int,
                      education_data: str, education: str, resume: str, is_face_to_face: bool, data_face_to_face: str,
-                     photo: str, price_just_ask: int, price_decoding: int, price_main_first: int,
+                     price_just_ask: int, price_decoding: int, price_main_first: int,
                      price_main_repeated: int, price_second_opinion: int, achievements: str, is_social_networks: bool,
                      social_networks_telegram: str, social_networks_instagram: str, about_me: str,
                      bank_details_russia: str, bank_details_abroad: str):
@@ -13,7 +13,7 @@ async def add_doctor(user_id: int, full_name: str, country: str, city: str, spec
         session.add(Doctor(user_id=user_id, full_name=full_name, country=country, city=city, specialty=specialty,
                            work_experience=work_experience, education_data=education_data, education=education,
                            resume=resume,
-                           is_face_to_face=is_face_to_face, data_face_to_face=data_face_to_face, photo=photo,
+                           is_face_to_face=is_face_to_face, data_face_to_face=data_face_to_face,
                            price_just_ask=price_just_ask, price_decoding=price_decoding,
                            price_main_first=price_main_first,
                            price_main_repeated=price_main_repeated, price_second_opinion=price_second_opinion,
@@ -49,7 +49,7 @@ async def delete_doctor(user_id: int):
 
 async def edit_doctor(user_id: int, full_name: str, country: str, city: str, specialty: str, work_experience: int,
                       education_data: str, education: str, resume: str, is_face_to_face: bool, data_face_to_face: str,
-                      photo: str, price_just_ask: int, price_decoding: int, price_main_first: int,
+                       price_just_ask: int, price_decoding: int, price_main_first: int,
                       price_main_repeated: int, price_second_opinion: int,
                       achievements: str, is_social_networks: bool, social_networks_telegram: str,
                       social_networks_instagram: str, about_me: str, bank_details_russia: str,
@@ -62,7 +62,7 @@ async def edit_doctor(user_id: int, full_name: str, country: str, city: str, spe
                                                                    education_data=education_data, education=education,
                                                                    resume=resume,
                                                                    is_face_to_face=is_face_to_face,
-                                                                   data_face_to_face=data_face_to_face, photo=photo,
+                                                                   data_face_to_face=data_face_to_face,
                                                                    price_just_ask=price_just_ask,
                                                                    price_decoding=price_decoding,
                                                                    price_main_first=price_main_first,
