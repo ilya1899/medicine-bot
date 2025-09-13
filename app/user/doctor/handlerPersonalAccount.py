@@ -87,6 +87,7 @@ async def copyToPreDoctor(doctor):
     await requestsPreDoctor.add_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city, doctor.specialty,
                                        doctor.work_experience, doctor.education_data, doctor.education, doctor.resume,
                                        doctor.is_face_to_face,
+                                       doctor.photo,
                                        doctor.data_face_to_face, doctor.price_just_ask,
                                        doctor.price_decoding, doctor.price_main_first, doctor.price_main_repeated,
                                        doctor.price_second_opinion,
@@ -99,6 +100,7 @@ async def copyToDoctor(doctor):
     if not await requestsDoctor.edit_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city,
                                             doctor.specialty, doctor.work_experience, doctor.education_data,
                                             doctor.education, doctor.resume,
+                                            doctor.photo,
                                             doctor.is_face_to_face, doctor.data_face_to_face,
                                             doctor.price_just_ask, doctor.price_decoding, doctor.price_main_first,
                                             doctor.price_main_repeated,
@@ -108,6 +110,7 @@ async def copyToDoctor(doctor):
         await requestsDoctor.add_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city, doctor.specialty,
                                         doctor.work_experience, doctor.education_data, doctor.education, doctor.resume,
                                         doctor.is_face_to_face,
+                                        doctor.photo,
                                         doctor.data_face_to_face, doctor.price_just_ask,
                                         doctor.price_decoding, doctor.price_main_first, doctor.price_main_repeated,
                                         doctor.price_second_opinion,
@@ -662,7 +665,7 @@ VISA / MASTERCARD: {doctor.bank_details_abroad}
     # Проверяем, есть ли фото у доктора
     if doctor.photo and doctor.photo.strip():
         messages.append(await bot.send_photo(chat_id=admin_group_id, photo=doctor.photo))
-    
+
     messages.extend(await bot.send_media_group(chat_id=admin_group_id, media=mediaGroup))
     ids = ', '.join([str(message.message_id) for message in messages])
     await bot.send_message(chat_id=admin_group_id, text='Выберите действие',
