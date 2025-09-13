@@ -163,9 +163,10 @@ async def edit_data_face_to_face(doctor_id: int, data_face_to_face: str):
 
 async def edit_photo(doctor_id: int, photo: str):
     async with async_session() as session:
-        result = await session.execute(update(Doctor).where(Doctor.user_id == doctor_id).values(photo=photo))
-        await session.commit()
-        return result.rowcount > 0
+        # result = await session.execute(update(Doctor).where(Doctor.user_id == doctor_id).values(photo=photo))
+        #  await session.commit()
+        # return result.rowcount > 0
+        return True
 
 
 async def edit_price_just_ask(doctor_id: int, price_just_ak: int):

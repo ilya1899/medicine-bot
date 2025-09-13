@@ -17,7 +17,6 @@ class EditPersonalAccount(StatesGroup):
     education_data = State()
     resume = State()
     face_to_face = State()
-    photo = State()
     price_just_ask = State()
     price_decoding = State()
     price_main_first = State()
@@ -33,7 +32,6 @@ class EditPersonalAccount(StatesGroup):
 
 
 class EditPersonalAccountAdmin(StatesGroup):
-    photo = State()
     education = State()
     reasonOfReject = State()
 
@@ -87,7 +85,7 @@ async def copyToPreDoctor(doctor):
     await requestsPreDoctor.add_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city, doctor.specialty,
                                        doctor.work_experience, doctor.education_data, doctor.education, doctor.resume,
                                        doctor.is_face_to_face,
-                                       doctor.data_face_to_face, doctor.photo, doctor.price_just_ask,
+                                       doctor.data_face_to_face, doctor.price_just_ask,
                                        doctor.price_decoding, doctor.price_main_first, doctor.price_main_repeated,
                                        doctor.price_second_opinion,
                                        doctor.achievements, doctor.is_social_networks, doctor.social_networks_telegram,
@@ -99,7 +97,7 @@ async def copyToDoctor(doctor):
     if not await requestsDoctor.edit_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city,
                                             doctor.specialty, doctor.work_experience, doctor.education_data,
                                             doctor.education, doctor.resume,
-                                            doctor.is_face_to_face, doctor.data_face_to_face, doctor.photo,
+                                            doctor.is_face_to_face, doctor.data_face_to_face,
                                             doctor.price_just_ask, doctor.price_decoding, doctor.price_main_first,
                                             doctor.price_main_repeated,
                                             doctor.price_second_opinion, doctor.achievements, doctor.is_social_networks,
@@ -108,7 +106,7 @@ async def copyToDoctor(doctor):
         await requestsDoctor.add_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city, doctor.specialty,
                                         doctor.work_experience, doctor.education_data, doctor.education, doctor.resume,
                                         doctor.is_face_to_face,
-                                        doctor.data_face_to_face, doctor.photo, doctor.price_just_ask,
+                                        doctor.data_face_to_face, doctor.price_just_ask,
                                         doctor.price_decoding, doctor.price_main_first, doctor.price_main_repeated,
                                         doctor.price_second_opinion,
                                         doctor.achievements, doctor.is_social_networks, doctor.social_networks_telegram,
