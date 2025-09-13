@@ -141,8 +141,8 @@ async def message_requestTelegram(message: Message, state: FSMContext):
     user_id = message.from_user.id
     data = await state.get_data()
     await requestsDoctor.add_doctor(user_id, data['full_name'], data['country'], data['city'],
-                                    '', 0, '', '', '', False, '', 0, 0, 0, 0, 0, '', True, message.text, '', '', '',
-                                    '')
+                                    '', 0, '', '', '', False, '', '', 0, 0, 0, 0, 0, message.text, '', '', '',
+                                    '', '', '')
     await state.clear()
     await message.answer(
         'Вы зарегистрированы! Заполните профиль врача в личном кабинете. Перейти в панель врача можно, написав команду /doctor',
