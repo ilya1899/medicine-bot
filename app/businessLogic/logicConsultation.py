@@ -254,7 +254,6 @@ async def openDoctorInfo(callback: CallbackQuery):
 
 
 async def sendDoctorInfo(callback, index, doctor, doctors, id):
-    lastMessageID = (await callback.message.edit_media(media=InputMediaPhoto(media=doctor.photo))).message_id
     work_experience = doctor.work_experience
     if work_experience == 1:
         work_experience = str(work_experience) + ' год'
@@ -283,7 +282,8 @@ async def sendDoctorInfo(callback, index, doctor, doctors, id):
             price = i
     price = int(price * 1.2)
 
-    await callback.message.edit_caption(inline_message_id=str(lastMessageID), caption=f'''{doctor.full_name}
+    # Формируем текст с информацией о докторе
+    doctor_text = f'''{doctor.full_name}
 Общий рейтинг: {doctor.rating_all} / {number_of_consultation}
 
 Детальный рейтинг:
@@ -296,8 +296,18 @@ async def sendDoctorInfo(callback, index, doctor, doctors, id):
 Стаж работы: {work_experience}
 
 {emoji}
-От {price} руб.
-''', reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
+От {price} руб.'''
+
+    # Проверяем, есть ли фото у доктора
+    if doctor.photo and doctor.photo.strip():
+        lastMessageID = (await callback.message.edit_media(media=InputMediaPhoto(media=doctor.photo))).message_id
+        await callback.message.edit_caption(inline_message_id=str(lastMessageID), caption=doctor_text,
+                                           reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
+    else:
+        # Если фото нет, отправляем текстовое сообщение
+        await callback.message.delete()
+        await callback.message.answer(text=doctor_text,
+                                     reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
 
 
 async def goBackDoctorInfo(callback: CallbackQuery):

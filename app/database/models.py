@@ -32,16 +32,16 @@ class Doctor(Base):
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     full_name: Mapped[str] = mapped_column()
-    country: Mapped[str] = mapped_column()  #
-    city: Mapped[str] = mapped_column()  #
-    specialty: Mapped[str] = mapped_column()  #
+    country: Mapped[str] = mapped_column()
+    city: Mapped[str] = mapped_column()
+    specialty: Mapped[str] = mapped_column()
     work_experience: Mapped[int] = mapped_column()
     education_data: Mapped[str] = mapped_column()
     education: Mapped[str] = mapped_column()
     resume = mapped_column(Text)
     is_face_to_face: Mapped[bool] = mapped_column()
     data_face_to_face: Mapped[str] = mapped_column()
-    # photo: Mapped[str] = mapped_column()
+    photo: Mapped[str] = mapped_column()
     price_just_ask: Mapped[int] = mapped_column()
     price_decoding: Mapped[int] = mapped_column()
     price_main_first: Mapped[int] = mapped_column()
@@ -75,7 +75,7 @@ class PreDoctor(Base):
     resume = mapped_column(Text)
     is_face_to_face: Mapped[bool] = mapped_column()
     data_face_to_face: Mapped[str] = mapped_column()
-    # photo: Mapped[str] = mapped_column()
+    photo: Mapped[str] = mapped_column()
     price_just_ask: Mapped[int] = mapped_column()
     price_decoding: Mapped[int] = mapped_column()
     price_main_first: Mapped[int] = mapped_column()
