@@ -2,6 +2,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
+from app.database.models import Doctor
+
 
 class AddDoctor(StatesGroup):
     user_id = State()
@@ -222,13 +224,38 @@ async def addDoctorAboutMe(message: Message, state: FSMContext):
 
 async def infoTrue(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    await requestsDoctor.add_doctor(data['user_id'], data['full_name'], data['country'], data['city'],
-                                    ', '.join([str(x) for x in data['specialty']]),
-                                    data['work_experience'], '', data['education'], data['resume'],
-                                    data['data_face_to_face'] != '', data['data_face_to_face'], data['photo'],
-                                    data['price'], data['price'], data['achievements'], data['social_networks'],
-                                    data['about_me'], data['bank_details_russia'], data['bank_details_abroad'], '', '',
-                                    '', '', '')
+    doctor = Doctor(
+        user_id=data['user_id'],
+        full_name=data['full_name'],
+        country=data['country'],
+        city=data['city'],
+        specialty=', '.join([str(x) for x in data['specialty']]),
+        work_experience=data['work_experience'],
+        education_data='',
+        education=data['education'],
+        resume=data['resume'],
+        is_face_to_face=True,
+        data_face_to_face=data['data_face_to_face'],
+        photo=data['photo'],
+        price_just_ask=data['price'],
+        price_decoding=data['price'],
+        price_main_first=data['price'],
+        price_main_repeated=data['price'],
+        price_second_opinion=data['price'],
+        achievements=data['achievements'],
+        is_social_networks=True,
+        social_networks_telegram='',
+        social_networks_instagram='',
+        about_me=data['about_me'],
+        rating_all=0,
+        rating_1=0,
+        rating_2=0,
+        rating_3=0,
+        rating_4=0,
+        bank_details_russia=data['bank_details_russia'],
+        bank_details_abroad=data['bank_details_abroad'])
+
+    await requestsDoctor.add_doctor(doctor)
     await state.clear()
     await state.set_state(Admin.admin)
     await callback.message.delete()

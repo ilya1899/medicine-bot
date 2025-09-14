@@ -97,26 +97,8 @@ async def copyToPreDoctor(doctor):
 
 
 async def copyToDoctor(doctor):
-    if not await requestsDoctor.edit_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city,
-                                            doctor.specialty, doctor.work_experience, doctor.education_data,
-                                            doctor.education, doctor.resume,
-                                            doctor.photo,
-                                            doctor.is_face_to_face, doctor.data_face_to_face,
-                                            doctor.price_just_ask, doctor.price_decoding, doctor.price_main_first,
-                                            doctor.price_main_repeated,
-                                            doctor.price_second_opinion, doctor.achievements, doctor.is_social_networks,
-                                            doctor.social_networks_telegram, doctor.social_networks_instagram,
-                                            doctor.about_me, doctor.bank_details_russia, doctor.bank_details_abroad):
-        await requestsDoctor.add_doctor(doctor.user_id, doctor.full_name, doctor.country, doctor.city, doctor.specialty,
-                                        doctor.work_experience, doctor.education_data, doctor.education, doctor.resume,
-                                        doctor.is_face_to_face,
-                                        doctor.photo,
-                                        doctor.data_face_to_face, doctor.price_just_ask,
-                                        doctor.price_decoding, doctor.price_main_first, doctor.price_main_repeated,
-                                        doctor.price_second_opinion,
-                                        doctor.achievements, doctor.is_social_networks, doctor.social_networks_telegram,
-                                        doctor.social_networks_instagram, doctor.about_me, doctor.bank_details_russia,
-                                        doctor.bank_details_abroad)
+    if not await requestsDoctor.edit_doctor(doctor):
+        await requestsDoctor.add_doctor(doctor)
 
 
 async def editDoctorPersonalAccount(function, message, value, state, user_id, whereReturn):

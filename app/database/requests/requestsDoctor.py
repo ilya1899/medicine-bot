@@ -3,26 +3,9 @@ from sqlalchemy import select, update
 from app.database.models import async_session, Doctor
 
 
-async def add_doctor(user_id: int, full_name: str, country: str, city: str, specialty: str, work_experience: int,
-                     education_data: str, education: str, resume: str, is_face_to_face: bool, data_face_to_face: str,
-                     photo: str, price_just_ask: int, price_decoding: int, price_main_first: int,
-                     price_main_repeated: int, price_second_opinion: int, achievements: str, is_social_networks: bool,
-                     social_networks_telegram: str, social_networks_instagram: str, about_me: str,
-                     bank_details_russia: str, bank_details_abroad: str):
+async def add_doctor(doctor: Doctor):
     async with async_session() as session:
-
-        session.add(Doctor(user_id=user_id, full_name=full_name, country=country, city=city, specialty=specialty,
-                           work_experience=work_experience, education_data=education_data, education=education,
-                           resume=resume,
-                           is_face_to_face=is_face_to_face, data_face_to_face=data_face_to_face, photo=photo,
-                           price_just_ask=price_just_ask, price_decoding=price_decoding,
-                           price_main_first=price_main_first,
-                           price_main_repeated=price_main_repeated, price_second_opinion=price_second_opinion,
-                           achievements=achievements,
-                           is_social_networks=is_social_networks, social_networks_telegram=social_networks_telegram,
-                           social_networks_instagram=social_networks_instagram, about_me=about_me, rating_all=0,
-                           rating_1=0, rating_2=0, rating_3=0, rating_4=0, bank_details_russia=bank_details_russia,
-                           bank_details_abroad=bank_details_abroad))
+        session.add(doctor)
         await session.commit()
 
 
@@ -48,35 +31,39 @@ async def delete_doctor(user_id: int):
         return False
 
 
-async def edit_doctor(user_id: int, full_name: str, country: str, city: str, specialty: str, work_experience: int,
-                      education_data: str, education: str, resume: str, is_face_to_face: bool, data_face_to_face: str,
-                      photo: str, price_just_ask: int, price_decoding: int, price_main_first: int,
-                      price_main_repeated: int, price_second_opinion: int,
-                      achievements: str, is_social_networks: bool, social_networks_telegram: str,
-                      social_networks_instagram: str, about_me: str, bank_details_russia: str,
-                      bank_details_abroad: str):
+async def edit_doctor(doctor: Doctor):
     async with async_session() as session:
+        update_data = {
+            'full_name': doctor.full_name,
+            'country': doctor.country,
+            'city': doctor.city,
+            'specialty': doctor.specialty,
+            'work_experience': doctor.work_experience,
+            'education_data': doctor.education_data,
+            'education': doctor.education,
+            'resume': doctor.resume,
+            'is_face_to_face': doctor.is_face_to_face,
+            'data_face_to_face': doctor.data_face_to_face,
+            'photo': doctor.photo,
+            'price_just_ask': doctor.price_just_ask,
+            'price_decoding': doctor.price_decoding,
+            'price_main_first': doctor.price_main_first,
+            'price_main_repeated': doctor.price_main_repeated,
+            'price_second_opinion': doctor.price_second_opinion,
+            'achievements': doctor.achievements,
+            'is_social_networks': doctor.is_social_networks,
+            'social_networks_telegram': doctor.social_networks_telegram,
+            'social_networks_instagram': doctor.social_networks_instagram,
+            'about_me': doctor.about_me,
+            'bank_details_russia': doctor.bank_details_russia,
+            'bank_details_abroad': doctor.bank_details_abroad
+        }
+
         result = await session.execute(
-            update(Doctor).where(Doctor.user_id == user_id).values(full_name=full_name, country=country,
-                                                                   city=city, specialty=specialty,
-                                                                   work_experience=work_experience,
-                                                                   education_data=education_data, education=education,
-                                                                   resume=resume,
-                                                                   is_face_to_face=is_face_to_face,
-                                                                   data_face_to_face=data_face_to_face,
-                                                                   photo=photo,
-                                                                   price_just_ask=price_just_ask,
-                                                                   price_decoding=price_decoding,
-                                                                   price_main_first=price_main_first,
-                                                                   price_main_repeated=price_main_repeated,
-                                                                   price_second_opinion=price_second_opinion,
-                                                                   achievements=achievements,
-                                                                   is_social_networks=is_social_networks,
-                                                                   social_networks_telegram=social_networks_telegram,
-                                                                   social_networks_instagram=social_networks_instagram,
-                                                                   about_me=about_me,
-                                                                   bank_details_russia=bank_details_russia,
-                                                                   bank_details_abroad=bank_details_abroad))
+            update(Doctor)
+            .where(Doctor.user_id == doctor.user_id)
+            .values(**update_data)
+        )
         await session.commit()
         return result.rowcount > 0
 
@@ -164,10 +151,9 @@ async def edit_data_face_to_face(doctor_id: int, data_face_to_face: str):
 
 async def edit_photo(doctor_id: int, photo: str):
     async with async_session() as session:
-        # result = await session.execute(update(Doctor).where(Doctor.user_id == doctor_id).values(photo=photo))
-        #  await session.commit()
-        # return result.rowcount > 0
-        return True
+        result = await session.execute(update(Doctor).where(Doctor.user_id == doctor_id).values(photo=photo))
+        await session.commit()
+        return result.rowcount > 0
 
 
 async def edit_price_just_ask(doctor_id: int, price_just_ak: int):

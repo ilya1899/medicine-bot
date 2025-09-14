@@ -15,6 +15,7 @@ async_session = async_sessionmaker(engine)
 class Base(AsyncAttrs, DeclarativeBase):
     pass
 
+
 @dataclass
 class User(Base):
     __tablename__ = 'users'
@@ -27,38 +28,39 @@ class User(Base):
     city: Mapped[str] = mapped_column()
 
 
+@dataclass
 class Doctor(Base):
     __tablename__ = 'doctors'
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    full_name: Mapped[str] = mapped_column()
-    country: Mapped[str] = mapped_column()
-    city: Mapped[str] = mapped_column()
-    specialty: Mapped[str] = mapped_column()
-    work_experience: Mapped[int] = mapped_column()
-    education_data: Mapped[str] = mapped_column()
-    education: Mapped[str] = mapped_column()
-    resume = mapped_column(Text)
-    is_face_to_face: Mapped[bool] = mapped_column()
-    data_face_to_face: Mapped[str] = mapped_column()
-    photo: Mapped[str] = mapped_column()
-    price_just_ask: Mapped[int] = mapped_column()
-    price_decoding: Mapped[int] = mapped_column()
-    price_main_first: Mapped[int] = mapped_column()
-    price_main_repeated: Mapped[int] = mapped_column()
-    price_second_opinion: Mapped[int] = mapped_column()
-    achievements: Mapped[str] = mapped_column()
-    is_social_networks: Mapped[bool] = mapped_column()
-    social_networks_telegram: Mapped[str] = mapped_column()
-    social_networks_instagram: Mapped[str] = mapped_column()
-    about_me = mapped_column(Text)
-    rating_all: Mapped[float] = mapped_column()
-    rating_1: Mapped[float] = mapped_column()
-    rating_2: Mapped[float] = mapped_column()
-    rating_3: Mapped[float] = mapped_column()
-    rating_4: Mapped[float] = mapped_column()
-    bank_details_russia: Mapped[str] = mapped_column()
-    bank_details_abroad: Mapped[str] = mapped_column()
+    full_name: Mapped[str] = mapped_column(default="")
+    country: Mapped[str] = mapped_column(default="")
+    city: Mapped[str] = mapped_column(default="")
+    specialty: Mapped[str] = mapped_column(default="")
+    work_experience: Mapped[int] = mapped_column(default=0)
+    education_data: Mapped[str] = mapped_column(default="")
+    education: Mapped[str] = mapped_column(default="")
+    resume: Mapped[str] = mapped_column(Text, default="")
+    is_face_to_face: Mapped[bool] = mapped_column(default=False)
+    data_face_to_face: Mapped[str] = mapped_column(default="")
+    photo: Mapped[str] = mapped_column(default="")
+    price_just_ask: Mapped[int] = mapped_column(default=0)
+    price_decoding: Mapped[int] = mapped_column(default=0)
+    price_main_first: Mapped[int] = mapped_column(default=0)
+    price_main_repeated: Mapped[int] = mapped_column(default=0)
+    price_second_opinion: Mapped[int] = mapped_column(default=0)
+    achievements: Mapped[str] = mapped_column(default="")
+    is_social_networks: Mapped[bool] = mapped_column(default=False)
+    social_networks_telegram: Mapped[str] = mapped_column(default="")
+    social_networks_instagram: Mapped[str] = mapped_column(default="")
+    about_me: Mapped[str] = mapped_column(Text, default="")
+    rating_all: Mapped[float] = mapped_column(default=0.0)
+    rating_1: Mapped[float] = mapped_column(default=0.0)
+    rating_2: Mapped[float] = mapped_column(default=0.0)
+    rating_3: Mapped[float] = mapped_column(default=0.0)
+    rating_4: Mapped[float] = mapped_column(default=0.0)
+    bank_details_russia: Mapped[str] = mapped_column(default="")
+    bank_details_abroad: Mapped[str] = mapped_column(default="")
 
 
 class PreDoctor(Base):

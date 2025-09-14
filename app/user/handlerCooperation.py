@@ -5,6 +5,7 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboar
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
+from app.database.models import Doctor
 from app.keyboards.kbInline import consent_keyboard
 
 router = Router()
@@ -80,15 +81,6 @@ async def callback_forDoctors(callback: CallbackQuery, state: FSMContext):
     ]))
     await state.clear()
 
-
-# @router.callback_query(F.data == "submitRequest1")
-# async def callback_submitRequest1(callback: CallbackQuery, state: FSMContext):
-#     await state.update_data(license_accepted=False, privacy_accepted=False, personal_accepted=False)
-#     await callback.message.edit_text(
-#         'Для подачи заявки необходимо согласиться со всеми документами:',
-#         reply_markup=consent_keyboard({}),
-#
-#     )
 
 @router.callback_query(F.data == "submitRequest1")
 async def callback_submitRequest1(callback: CallbackQuery, state: FSMContext):
@@ -167,9 +159,15 @@ async def message_requestCity(message: Message, state: FSMContext):
 async def message_requestTelegram(message: Message, state: FSMContext):
     user_id = message.from_user.id
     data = await state.get_data()
-    await requestsDoctor.add_doctor(user_id, data['full_name'], data['country'], data['city'],
-                                    '', 0, '', '', '', False, '', '', 0, 0, 0, 0, 0, message.text, '', '', '',
-                                    '', '', '')
+    doctor = Doctor(
+        user_id=user_id,
+        full_name=data['full_name'],
+        country=data['country'],
+        city=data['city'],
+        social_networks_telegram=message.text
+
+    )
+    await requestsDoctor.add_doctor(doctor)
     await state.clear()
     await message.answer(
         'Вы зарегистрированы! Заполните профиль врача в личном кабинете. Перейти в панель врача можно, написав команду /doctor',
