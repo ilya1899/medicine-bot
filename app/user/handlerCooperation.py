@@ -81,15 +81,41 @@ async def callback_forDoctors(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
+# @router.callback_query(F.data == "submitRequest1")
+# async def callback_submitRequest1(callback: CallbackQuery, state: FSMContext):
+#     await state.update_data(license_accepted=False, privacy_accepted=False, personal_accepted=False)
+#     await callback.message.edit_text(
+#         'Для подачи заявки необходимо согласиться со всеми документами:',
+#         reply_markup=consent_keyboard({}),
+#
+#     )
+
 @router.callback_query(F.data == "submitRequest1")
 async def callback_submitRequest1(callback: CallbackQuery, state: FSMContext):
     await state.update_data(license_accepted=False, privacy_accepted=False, personal_accepted=False)
-    await callback.message.edit_text(
-        'Для подачи заявки необходимо согласиться со всеми документами:',
-        reply_markup=consent_keyboard({}),
 
+    message_text = (
+        '📋 <b>Для подачи заявки необходимо согласиться со всеми документами:</b>\n\n'
+
+        '• <a href="https://docs.google.com/document/d/1_9szCZrkTcqGgQtlt72eS5-qpspIjVu-Q9EUmXhxiu4/edit?tab=t.0">'
+        'Лицензионное соглашение</a>\n'
+
+        '• <a href="https://docs.google.com/document/d/1_9szCZrkTcqGgQtlt72eS5-qpspIjVu-Q9EUmXhxiu4/edit?tab=t.0">'
+        'Политика конфиденциальности</a>\n'
+
+        '• <a href="https://docs.google.com/document/d/1_9szCZrkTcqGgQtlt72eS5-qpspIjVu-Q9EUmXhxiu4/edit?tab=t.0">'
+        'Согласие на обработку персональных данных</a>\n\n'
+
+        '📖 <i>Нажмите на ссылки чтобы открыть документы для чтения</i>\n'
+        '✅ <i>После прочтения поставьте галочки согласия</i>'
     )
 
+    await callback.message.edit_text(
+        message_text,
+        reply_markup=consent_keyboard({}),
+        parse_mode='HTML',
+        disable_web_page_preview=True
+    )
 
 @router.callback_query(F.data.startswith("toggle_"))
 async def callback_toggleConsent(callback: CallbackQuery, state: FSMContext):
@@ -106,13 +132,14 @@ async def callback_toggleConsent(callback: CallbackQuery, state: FSMContext):
         data["personal_accepted"] = not data["personal_accepted"]
 
     await state.update_data(data)
-    await callback.message.edit_reply_markup(reply_markup=consent_keyboard(data))
 
+    if data["license_accepted"] and data["privacy_accepted"] and data["personal_accepted"]:
+        await state.set_state(Request.full_name)
+        await callback.message.edit_text('✅ Все соглашения приняты!\n\nУкажите ФИО:')
+    else:
+        await callback.message.edit_reply_markup(reply_markup=consent_keyboard(data))
 
-@router.callback_query(F.data == "final_submit")
-async def callback_submitRequest2(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(Request.full_name)
-    await callback.message.edit_text('Укажите ФИО')
+    await callback.answer()
 
 
 @router.message(Request.full_name)

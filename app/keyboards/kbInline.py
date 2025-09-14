@@ -376,9 +376,6 @@ def consent_keyboard(state_data: dict) -> InlineKeyboardMarkup:
                               callback_data="toggle_personal")],
     ]
 
-    if state_data.get("license_accepted") and state_data.get("privacy_accepted") and state_data.get(
-            "personal_accepted"):
-        buttons.append([InlineKeyboardButton(text="Продолжить подачу заявки", callback_data="final_submit")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
