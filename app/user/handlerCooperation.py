@@ -6,7 +6,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
 from app.database.models import Doctor
-from app.keyboards.kbInline import consent_keyboard
+from app.keyboards.kbInline import consent_keyboard, submitRequest1
 
 router = Router()
 
@@ -76,9 +76,7 @@ async def callback_forDoctors(callback: CallbackQuery, state: FSMContext):
 
 🌱 Раскройте свой потенциал
 Реализуйте амбиции в медицине и создавайте значимые проекты.
-''', reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Подать заявку", callback_data="submitRequest1")]
-    ]))
+''', reply_markup=submitRequest1)
     await state.clear()
 
 
@@ -108,6 +106,7 @@ async def callback_submitRequest1(callback: CallbackQuery, state: FSMContext):
         parse_mode='HTML',
         disable_web_page_preview=True
     )
+
 
 @router.callback_query(F.data.startswith("toggle_"))
 async def callback_toggleConsent(callback: CallbackQuery, state: FSMContext):
