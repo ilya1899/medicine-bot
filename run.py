@@ -1,14 +1,17 @@
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
-
-from dotenv import load_dotenv
-import os
 import gspread
+from aiogram.types import Update, ErrorEvent
 from oauth2client.service_account import ServiceAccountCredentials
 
-from config import storage
+from app.database import models
+from app.loader import dp, bot
+from app.user import handlerCommand, handlerRegistration, handlerFAQ, handlerAboutUs, handlerSupportProject, \
+    handlerConsultation, handlerReview, handlerCooperation, handlerHistory
+from app.user.admin import handlerAdmin, handlerEditDoctors, handlerStatistics, handlerSpecialties, \
+    handlerPhotoAndFile, handlerFeedback, handlerMailing, handlerLastMessage
+from app.user.doctor import handlerDoctorConsultations, handlerPersonalAccount, handlerDoctor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,23 +23,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv()
-bot = Bot(token=os.getenv('TOKEN'))
-dp = Dispatcher(storage=storage)
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_name('sheets.json', scope)
 client = gspread.authorize(creds)
 
-from app.database import models
-# from app.middlewares.middlewares import Middleware
 
-from app.user import handlerCommand, handlerRegistration, handlerFAQ, handlerAboutUs, handlerSupportProject, \
-    handlerConsultation, handlerReview, handlerCooperation, handlerHistory
+@dp.error()
+async def global_error_handler(event: ErrorEvent):
+    exception = event.exception
+    update: Update = event.update
+    logger.exception(f'Ошибка при обработке хэндлера: {exception}')
 
-from app.user.doctor import handlerDoctorConsultations, handlerPersonalAccount, handlerDoctor
-from app.user.admin import handlerAdmin, handlerEditDoctors, handlerStatistics, handlerSpecialties, \
-    handlerPhotoAndFile, handlerFeedback, handlerMailing, handlerLastMessage
+    try:
+        if update.message:
+            await update.message.answer(
+                f'СООБЩЕНИЕ ДЛЯ ОТЛАДКИ!\n Отправьте это сообщение разработчикам\n Ошибка: {exception}')
+        elif update.callback_query:
+            await update.callback_query.message.answer(
+                f'СООБЩЕНИЕ ДЛЯ ОТЛАДКИ!\n Отправьте это сообщение разработчикам\n Ошибка: {exception}')
+    except Exception as e:
+        logging.error(f"Не удалось отправить ошибку в чат: {e}")
 
 
 async def main():
@@ -46,7 +53,6 @@ async def main():
     logger.info('Successful model init')
     # dp.message.outer_middleware(Middleware())
     # dp.callback_query.outer_middleware(Middleware())
-
     dp.include_routers(
         handlerCommand.router,
         # handlerUpload.router,

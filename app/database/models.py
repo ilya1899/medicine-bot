@@ -27,6 +27,9 @@ class User(Base):
     country: Mapped[str] = mapped_column()
     city: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"User(id={self.user_id}, name={self.full_name}, age={self.age}, gender={self.gender}, city={self.city})"
+
 
 @dataclass
 class Doctor(Base):
@@ -62,7 +65,11 @@ class Doctor(Base):
     bank_details_russia: Mapped[str] = mapped_column(default="")
     bank_details_abroad: Mapped[str] = mapped_column(default="")
 
+    def __repr__(self):
+        return f"Doctor(id={self.user_id}, name={self.full_name}, specialty={self.specialty}, city={self.city})"
 
+
+@dataclass
 class PreDoctor(Base):
     __tablename__ = 'pre_doctors'
 
@@ -91,7 +98,11 @@ class PreDoctor(Base):
     bank_details_russia: Mapped[str] = mapped_column()
     bank_details_abroad: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"PreDoctor(id={self.user_id}, name={self.full_name}, specialty={self.specialty})"
 
+
+@dataclass
 class Review(Base):
     __tablename__ = 'reviews'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -104,7 +115,11 @@ class Review(Base):
     stars_4: Mapped[int] = mapped_column()
     review: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"Review(id={self.id}, doctor_id={self.doctor_id}, patient_id={self.patient_id})"
 
+
+@dataclass
 class Statistics(Base):
     __tablename__ = 'statistics'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -114,17 +129,21 @@ class Statistics(Base):
     type_of_consultation: Mapped[str] = mapped_column()
     specialty: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"Statistics(id={self.id}, doctor_id={self.doctor_id}, patient_id={self.patient_id})"
 
-# третья нормальная форма почитать
-# создать файлы для проксирования requests
 
-
+@dataclass
 class Admin(Base):
     __tablename__ = 'admins'
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
+    def __repr__(self):
+        return f"Admin(user_id={self.user_id})"
 
+
+@dataclass
 class MessageToSend(Base):
     __tablename__ = 'messages_to_send'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -137,7 +156,11 @@ class MessageToSend(Base):
 
     is_first_message: Mapped[bool] = mapped_column()
 
+    def __repr__(self):
+        return f"MessageToSend(id={self.id}, from={self.user_1_id}, to={self.user_2_id})"
 
+
+@dataclass
 class MessageToRepeat(Base):
     __tablename__ = 'messages_to_repeat'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -148,7 +171,11 @@ class MessageToRepeat(Base):
     media_type: Mapped[str] = mapped_column()
     media_id: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"MessageToRepeat(id={self.id}, from={self.user_1_id}, to={self.user_2_id})"
 
+
+@dataclass
 class Bundle(Base):
     __tablename__ = 'bundles'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -161,14 +188,22 @@ class Bundle(Base):
 
     id_consultation: Mapped[int] = mapped_column()
 
+    def __repr__(self):
+        return f"Bundle(id={self.id}, patient={self.patient_id}, doctor={self.doctor_id})"
 
+
+@dataclass
 class Country(Base):
     __tablename__ = 'countries'
     id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"Country(id={self.id}, name={self.name})"
 
+
+@dataclass
 class City(Base):
     __tablename__ = 'cities'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -176,14 +211,22 @@ class City(Base):
     name: Mapped[str] = mapped_column()
     id_country: Mapped[int] = mapped_column()
 
+    def __repr__(self):
+        return f"City(id={self.id}, name={self.name}, country_id={self.id_country})"
 
+
+@dataclass
 class Specialty(Base):
     __tablename__ = 'specialties'
     id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"Specialty(id={self.id}, name={self.name})"
 
+
+@dataclass
 class HistoryConsultation(Base):
     __tablename__ = 'history_of_consultations'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -194,7 +237,11 @@ class HistoryConsultation(Base):
     chat_type: Mapped[str] = mapped_column()
     specialty: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"HistoryConsultation(id={self.id}, patient={self.patient_id}, doctor={self.doctor_id})"
 
+
+@dataclass
 class HistoryMessage(Base):
     __tablename__ = 'history_of_messages'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -207,7 +254,11 @@ class HistoryMessage(Base):
     media_type: Mapped[str] = mapped_column()
     media_id: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"HistoryMessage(id={self.id}, consult={self.id_consultation}, writer={self.who_write})"
 
+
+@dataclass
 class PhotoAndFile(Base):
     __tablename__ = 'photos_and_files'
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -215,13 +266,20 @@ class PhotoAndFile(Base):
     media_id: Mapped[str] = mapped_column()
     function: Mapped[str] = mapped_column()
 
+    def __repr__(self):
+        return f"PhotoAndFile(id={self.id}, function={self.function})"
 
+
+@dataclass
 class LastMessage(Base):
     __tablename__ = 'last_messages'
     id: Mapped[int] = mapped_column(primary_key=True)
 
     text = mapped_column(Text)
     function: Mapped[str] = mapped_column()
+
+    def __repr__(self):
+        return f"LastMessage(id={self.id}, function={self.function})"
 
 
 async def async_main():

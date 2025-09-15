@@ -1,36 +1,56 @@
+import logging
+
 from sqlalchemy import select, update, desc
 
 from app.database.models import HistoryConsultation, HistoryMessage, Bundle
 from app.database.models import async_session
 
+logger = logging.getLogger(__name__)
+
 
 async def add_consultation(name: str, patient_id: int, doctor_id: int, chat_type: str, specialty: str):
-    async with async_session() as session:
-        session.add(HistoryConsultation(name=name, patient_id=patient_id, doctor_id=doctor_id, chat_type=chat_type,
-                                        specialty=specialty))
-        await session.commit()
+    try:
+        async with async_session() as session:
+            session.add(HistoryConsultation(name=name, patient_id=patient_id, doctor_id=doctor_id, chat_type=chat_type,
+                                            specialty=specialty))
+            logger.info(
+                f'Add {HistoryConsultation(name=name, patient_id=patient_id, doctor_id=doctor_id, chat_type=chat_type, specialty=specialty)}')
+            await session.commit()
+    except Exception as e:
+        raise
 
 
 async def delete_consultation(id: int):
-    async with async_session() as session:
-        consultation = await session.scalar(select(HistoryConsultation).where(HistoryConsultation.id == id))
-        if consultation:
-            await session.delete(consultation)
-            await session.commit()
-            return True
-        return False
+    try:
+        async with async_session() as session:
+            consultation = await session.scalar(select(HistoryConsultation).where(HistoryConsultation.id == id))
+            logger.info(f'Get consultation {consultation}')
+            if consultation:
+                await session.delete(consultation)
+                logger.info(f'Delete consultation {consultation}')
+                await session.commit()
+                return True
+            return False
+    except Exception as e:
+        raise
 
 
 async def is_consultation(id: int):
-    async with async_session() as session:
-        consultation = await session.scalar(select(HistoryConsultation).where(HistoryConsultation.id == id))
-        return consultation != None
+    try:
+        async with async_session() as session:
+            consultation = await session.scalar(select(HistoryConsultation).where(HistoryConsultation.id == id))
+            return consultation is not None
+    except Exception as e:
+        raise
 
 
 async def get_consultation(id: int):
-    async with async_session() as session:
-        consultation = await session.scalar(select(HistoryConsultation).where(HistoryConsultation.id == id))
-        return consultation
+    try:
+        async with async_session() as session:
+            consultation = await session.scalar(select(HistoryConsultation).where(HistoryConsultation.id == id))
+            return consultation
+    except Exception as e:
+        raise
 
 
 async def get_all_consultations_by_patient_and_doctor_id(patient_id: int, doctor_id: int):

@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 from app.database.models import async_session, Admin
 
