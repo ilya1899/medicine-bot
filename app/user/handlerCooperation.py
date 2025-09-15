@@ -1,12 +1,13 @@
 import asyncio
 
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from app.database.models import Doctor
 from app.keyboards.kbInline import consent_keyboard, submitRequest1
+from run import bot
 
 router = Router()
 
@@ -35,7 +36,6 @@ lock = asyncio.Lock()
 from app.keyboards import kbInline, kbReply
 from app.database.requests import requestsDoctor
 from config import admin_group_id
-from run import bot
 
 
 @router.message(F.text == 'Сотрудничество')

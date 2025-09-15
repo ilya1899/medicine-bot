@@ -1,13 +1,11 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message, CallbackQuery
 
-from app.database.requests import requestsHistoryMessage
 
 router = Router()
 
 from app.businessLogic import logicConsultation
-from app.businessLogic.logicConsultation import AttachFile, ChatPatient, Payment, FailedConsultation
 
 
 @router.message(F.text == 'Задать вопрос врачу')
@@ -130,7 +128,7 @@ async def callback_infoAboutConsultation(callback: CallbackQuery):
     await logicConsultation.infoAboutConsultation(callback)
 
 
-@router.message(Payment.receipt)
+@router.message(logicConsultation.Payment.receipt)
 async def callback_truePayment(message: Message, state: FSMContext):
     await logicConsultation.consultationTruePayment(message, state)
 
@@ -159,7 +157,7 @@ async def callback_failedConsultation(callback: CallbackQuery, state: FSMContext
     await logicConsultation.failedConsultation(callback, state)
 
 
-@router.message(FailedConsultation.text)
+@router.message(logicConsultation.FailedConsultation.text)
 async def message_failedConsultatation(message: Message, state: FSMContext):
     await logicConsultation.failedConsultatationMessage(message, state)
 
@@ -174,12 +172,12 @@ async def callback_consultationJustAsk(callback: CallbackQuery, state: FSMContex
     await logicConsultation.consultationJustAskOffer(callback, state)
 
 
-@router.message(AttachFile.justAsk_name)
+@router.message(logicConsultation.AttachFile.justAsk_name)
 async def message_consultationJustAskName(message: Message, state: FSMContext):
     await logicConsultation.consultationJustAskName(message, state)
 
 
-@router.message(AttachFile.photoJustAsk)
+@router.message(logicConsultation.AttachFile.photoJustAsk)
 async def message_attachFileJustAskPhoto(message: Message, state: FSMContext):
     await logicConsultation.getDataForAttachFile(message, state, 'JustAsk')
 
@@ -204,12 +202,12 @@ async def callback_consultatioDecodingOffer(callback: CallbackQuery, state: FSMC
     await logicConsultation.consultationDecodingOffer(callback, state)
 
 
-@router.message(AttachFile.decoding_name)
+@router.message(logicConsultation.AttachFile.decoding_name)
 async def message_consultationDecondingName(message: Message, state: FSMContext):
     await logicConsultation.consultationDecodingName(message, state)
 
 
-@router.message(AttachFile.photoDecoding)
+@router.message(logicConsultation.AttachFile.photoDecoding)
 async def message_attachFileDecodingPhoto(message: Message, state: FSMContext):
     await logicConsultation.getDataForAttachFile(message, state, 'Decoding')
 
@@ -239,12 +237,12 @@ async def callback_firstConsulationName(callback: CallbackQuery, state: FSMConte
     await logicConsultation.firstConsultationName(callback, state)
 
 
-@router.message(AttachFile.main_first_name)
+@router.message(logicConsultation.AttachFile.main_first_name)
 async def message_firstConsultation(message: Message, state: FSMContext):
     await logicConsultation.firstConsultation(message, state)
 
 
-@router.message(AttachFile.main_first)
+@router.message(logicConsultation.AttachFile.main_first)
 async def message_textConsultationMain(message: Message, state: FSMContext):
     await logicConsultation.getDataForAttachFile(message, state, 'MainFirst')
 
@@ -269,7 +267,7 @@ async def callback_consultationMainRepeatedOffer(callback: CallbackQuery, state:
     await logicConsultation.consultationMainRepeatedOffer(callback, state)
 
 
-@router.message(AttachFile.main_repeated)
+@router.message(logicConsultation.AttachFile.main_repeated)
 async def message_textConsultationMain(message: Message, state: FSMContext):
     await logicConsultation.getDataForAttachFile(message, state, 'MainRepeated')
 
@@ -299,17 +297,17 @@ async def callback_consultationSecondOpinionOffer(callback: CallbackQuery, state
     await logicConsultation.consultationSecondOpinionOffer(callback, state)
 
 
-@router.message(AttachFile.secondOpinion_name)
+@router.message(logicConsultation.AttachFile.secondOpinion_name)
 async def message_consultationDecondingName(message: Message, state: FSMContext):
     await logicConsultation.consultationSecondOpinionName(message, state)
 
 
-@router.message(AttachFile.secondOpinion)
+@router.message(logicConsultation.AttachFile.secondOpinion)
 async def message_attachFileSecondOpinion(message: Message, state: FSMContext):
     await logicConsultation.consultationSecondOpinionLink1(message, state)
 
 
-@router.message(AttachFile.secondOpinion_link)
+@router.message(logicConsultation.AttachFile.secondOpinion_link)
 async def message_consultationSecondOpinionLink(message: Message, state: FSMContext):
     await logicConsultation.consultationSecondOpinionLink2(message, state)
 
@@ -334,49 +332,50 @@ async def callback_returnToMenu(callback: CallbackQuery):
     await logicConsultation.returnToMenu(callback)
 
 
-@router.message(F.text == 'Завершить консультацию', ChatPatient.openDialog)
+@router.message(F.text == 'Завершить консультацию', logicConsultation.ChatPatient.openDialog)
 async def message_endDialogPatient(message: Message):
     await logicConsultation.endDialogPatient(message)
 
 
-@router.callback_query(F.data == 'endConsultation', ChatPatient.openDialog)
+@router.callback_query(F.data == 'endConsultation', logicConsultation.ChatPatient.openDialog)
 async def callback_endConsultation(callback: CallbackQuery, state: FSMContext):
     await logicConsultation.endConsultation(callback, state)
 
 
-@router.callback_query(F.data == 'endNotConsultation', ChatPatient.openDialog)
+@router.callback_query(F.data == 'endNotConsultation', logicConsultation.ChatPatient.openDialog)
 async def callback_endNotConsultation(callback: CallbackQuery):
     await logicConsultation.endNotConsultation(callback)
 
 
-@router.message(F.text == 'Свернуть диалог', ChatPatient.openDialog)
+@router.message(F.text == 'Свернуть диалог', logicConsultation.ChatPatient.openDialog)
 async def message_closeDialogPatient(message: Message):
     await logicConsultation.closeDialogPatient(message)
 
 
-@router.callback_query(F.data == 'yesCloseDialogPatient', ChatPatient.openDialog)
+@router.callback_query(F.data == 'yesCloseDialogPatient', logicConsultation.ChatPatient.openDialog)
 async def callback_yesCloseDialog(callback: CallbackQuery, state: FSMContext):
     await logicConsultation.yesCloseDialogPatient(callback, state)
 
 
-@router.callback_query(F.data == 'notCloseDialogPatient', ChatPatient.openDialog)
+@router.callback_query(F.data == 'notCloseDialogPatient', logicConsultation.ChatPatient.openDialog)
 async def callback_notCloseDialog(callback: CallbackQuery):
     await logicConsultation.notCloseDialog(callback)
 
 
-@router.callback_query(F.data == 'deleteMessage', ChatPatient.openDialog)
+@router.callback_query(F.data == 'deleteMessage', logicConsultation.ChatPatient.openDialog)
 async def callback_deleteMessage(callback: CallbackQuery):
     await logicConsultation.deleteMessage(callback)
 
 
-@router.callback_query(F.data.startswith('sendMessage'), ChatPatient.openDialog)
+@router.callback_query(F.data.startswith('sendMessage'), logicConsultation.ChatPatient.openDialog)
 async def callback_sendMessage(callback: CallbackQuery):
     await logicConsultation.sendMessage(callback)
 
 
-@router.message(ChatPatient.openDialog)
+@router.message(logicConsultation.ChatPatient.openDialog)
 async def message_openDialogPatient(message: Message, state: FSMContext):
     await logicConsultation.openDialogPatient(message, state)
+
 
 @router.callback_query(F.data.startswith("seePatientMessage_"))
 async def callback_see_patient_message(callback: CallbackQuery):
@@ -390,4 +389,4 @@ async def callback_conv_patient(callback: CallbackQuery):
     doctor_id = int(doctor_id)
     patient_id = int(patient_id)
     page = int(page)
-    await logicConsultation.show_patient_conversation_paginated(callback.message, doctor_id, patient_id, page)
+    await logicConsultation.show_patient_conversation_paginated(callback, doctor_id, patient_id, page)

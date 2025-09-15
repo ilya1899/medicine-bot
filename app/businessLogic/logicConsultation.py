@@ -1,9 +1,11 @@
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove
-from aiogram.fsm.context import FSMContext, StorageKey
-from aiogram.fsm.state import State, StatesGroup
 import asyncio
 
+from aiogram.fsm.context import FSMContext, StorageKey
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove
+
 from app.businessLogic.logicRegistration import EditUser
+from app.loader import bot, dp
 
 
 class AttachFile(StatesGroup):
@@ -39,7 +41,6 @@ class Payment(StatesGroup):
     receipt = State()
 
 
-from run import bot, dp
 
 from config import admin_group_id, type_consultation
 from app.keyboards import kbInline, kbReply
@@ -93,9 +94,8 @@ async def continueConsultationDoctor(callback: CallbackQuery, state: FSMContext)
     await callback.message.answer(f'Вы открыли чат с доктором, тип консультации: {type_consultation[chat_type]}',
                                   reply_markup=keyboard)
 
-    # Show conversation history if it exists
     try:
-        await show_patient_conversation_paginated(callback.message, doctor_id, patient_id, page=1)
+        await show_patient_conversation_paginated(callback, doctor_id, patient_id, page=1)
     except Exception as e:
         print(f"Error showing conversation history: {e}")
         # If there's an error, just continue without showing history
@@ -282,7 +282,6 @@ async def sendDoctorInfo(callback, index, doctor, doctors, id):
             price = i
     price = int(price * 1.2)
 
-    # Формируем текст с информацией о докторе
     doctor_text = f'''{doctor.full_name}
 Общий рейтинг: {doctor.rating_all} / {number_of_consultation}
 
@@ -298,13 +297,11 @@ async def sendDoctorInfo(callback, index, doctor, doctors, id):
 {emoji}
 От {price} руб.'''
 
-    # Проверяем, есть ли фото у доктора
     if doctor.photo and doctor.photo.strip():
         lastMessageID = (await callback.message.edit_media(media=InputMediaPhoto(media=doctor.photo))).message_id
         await callback.message.edit_caption(inline_message_id=str(lastMessageID), caption=doctor_text,
                                            reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
     else:
-        # Если фото нет, отправляем текстовое сообщение
         await callback.message.delete()
         await callback.message.answer(text=doctor_text,
                                      reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
@@ -745,12 +742,12 @@ async def sendFirstMessage(callback: CallbackQuery, chat_type: str, state: FSMCo
         id_consultation = await requestsHistoryConsultation.get_last_id_consultation(patient_id)
 
         await requestsBundle.add_bundle(patient_id, doctor_id, chat_type, id_consultation)
-        # Get patient info for notification
+
         patient = await requestsUser.get_user_by_id(user_id=patient_id)
         gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
         patient_text = data.get('text', '')
 
-        # Send notification with patient context
+
         notification_text = f'''<code>Бот</code>
 
 Новая консультация от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
@@ -909,7 +906,7 @@ async def consultationAcceptPayment(callback: CallbackQuery):
     gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
     patient_text = data.get('text', '')
 
-    # Send notification with patient context
+
     notification_text = f'''<code>Бот</code>
 
 Новая консультация от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
@@ -1460,7 +1457,6 @@ async def sendMessage(callback: CallbackQuery):
 
     await callback.message.delete()
 
-    # Ensure we have current consultation id for notifications
     consult_id = await requestsBundle.get_id_consultation(patient_id, doctor_id)
     match media_type:
         case 'text':
