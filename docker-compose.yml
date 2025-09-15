@@ -1,32 +1,32 @@
 services:
-  traefik:
-    image: "traefik:v3.4"
-    container_name: "traefik"
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    networks:
-      - net
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=net"
-      - "--entryPoints.web.address=:80"
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-
-  whoami:
-    image: "traefik/whoami"
-    restart: unless-stopped
-    networks:
-      - net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
-      - "traefik.http.routers.whoami.entrypoints=web"
+#  traefik:
+#    image: "traefik:v3.4"
+#    container_name: "traefik"
+#    restart: unless-stopped
+#    security_opt:
+#      - no-new-privileges:true
+#    networks:
+#      - net
+#    command:
+#      - "--providers.docker=true"
+#      - "--providers.docker.exposedbydefault=false"
+#      - "--providers.docker.network=net"
+#      - "--entryPoints.web.address=:80"
+#    ports:
+#      - "80:80"
+#      - "8080:8080"
+#    volumes:
+#      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+#
+#  whoami:
+#    image: "traefik/whoami"
+#    restart: unless-stopped
+#    networks:
+#      - net
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)"
+#      - "traefik.http.routers.whoami.entrypoints=web"
 
   alloy:
     container_name: alloy
@@ -119,7 +119,7 @@ services:
     image: dpage/pgadmin4
     restart: always
     ports:
-      - "5050:5050"
+      - "5050:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: ${PG_ADMIN_PASSWORD}
