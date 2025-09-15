@@ -1,13 +1,13 @@
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 import asyncio
 
+from aiogram import Router, F
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDocument, ReplyKeyboardRemove, \
+    InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from app.businessLogic.logicConsultation import ChatPatient
-from app.keyboards.kbInline import consultation_keyboard, see_message_keyboard, make_consultation_keyboard, \
-    make_see_message_keyboard, kb_doctor_reply_or_view, kb_doctor_reply_or_postpone
 
 router = Router()
 
@@ -24,8 +24,7 @@ from app.database.requests import requestsDoctor, requestsBundle, requestsMessag
     requestsUser, requestsMessageToRepeat, requestsHistoryConsultation
 from app.keyboards import kbInline, kbReply
 from run import bot
-from config import type_consultation
-from texts import GENDER_MALE, GENDER_FEMALE, NEW_MESSAGE_FROM_PATIENT, CONSULTATION_NOTIFICATION, NEW_MESSAGE_FROM_DOCTOR
+from texts import GENDER_MALE, GENDER_FEMALE, CONSULTATION_NOTIFICATION, NEW_MESSAGE_FROM_DOCTOR, type_consultation
 
 
 @router.message(F.text == 'Консультации')

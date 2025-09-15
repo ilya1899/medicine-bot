@@ -6,6 +6,9 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InputMediaDoc
 
 from app.businessLogic.logicRegistration import EditUser
 from app.loader import bot, dp
+from texts import type_consultation
+
+from config_reader import config
 
 
 class AttachFile(StatesGroup):
@@ -41,8 +44,6 @@ class Payment(StatesGroup):
     receipt = State()
 
 
-
-from config import admin_group_id, type_consultation
 from app.keyboards import kbInline, kbReply
 from app.database.requests import requestsDoctor, requestsMessageToSend, requestsBundle, requestsStatistics, \
     requestsReview, \
@@ -300,11 +301,11 @@ async def sendDoctorInfo(callback, index, doctor, doctors, id):
     if doctor.photo and doctor.photo.strip():
         lastMessageID = (await callback.message.edit_media(media=InputMediaPhoto(media=doctor.photo))).message_id
         await callback.message.edit_caption(inline_message_id=str(lastMessageID), caption=doctor_text,
-                                           reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
+                                            reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
     else:
         await callback.message.delete()
         await callback.message.answer(text=doctor_text,
-                                     reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
+                                      reply_markup=await kbInline.getKeyboardDoctorsInfo(1, index, doctors, id))
 
 
 async def goBackDoctorInfo(callback: CallbackQuery):
@@ -747,7 +748,6 @@ async def sendFirstMessage(callback: CallbackQuery, chat_type: str, state: FSMCo
         gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
         patient_text = data.get('text', '')
 
-
         notification_text = f'''<code>Бот</code>
 
 Новая консультация от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
@@ -833,7 +833,7 @@ async def consultationTruePayment(message: Message, state: FSMContext):
 
     price = await getPrice(doctor_id, chat_type)
     if message.document:
-        await bot.send_document(chat_id=admin_group_id, document=message.document.file_id,
+        await bot.send_document(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), document=message.document.file_id,
 
                                 caption=f'''Пациент <code>{patient_id}</code> произвел оплату на сумму: {int(price * 1.2)} руб.
         Тип консультации: {type_consultation[chat_type]}
@@ -906,7 +906,6 @@ async def consultationAcceptPayment(callback: CallbackQuery):
     gender_label = 'мужчина' if patient.gender == 'male' else 'женщина'
     patient_text = data.get('text', '')
 
-
     notification_text = f'''<code>Бот</code>
 
 Новая консультация от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
@@ -963,7 +962,7 @@ async def failedConsultation(callback: CallbackQuery, state: FSMContext):
 async def failedConsultatationMessage(message: Message, state: FSMContext):
     data = await state.get_data()
     await state.clear()
-    await bot.send_message(chat_id=admin_group_id, text=f'''<b>Невыполненная консультация</b>
+    await bot.send_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), text=f'''<b>Невыполненная консультация</b>
 
 <code>{message.html_text}</code>
 
@@ -1396,7 +1395,6 @@ async def show_patient_conversation_paginated(callback: CallbackQuery, doctor_id
             await callback.message.delete()
             message = await callback.message.answer("Загружаем историю сообщений...")
             data = message
-
 
         history_messages = []
         for msg in chunk:

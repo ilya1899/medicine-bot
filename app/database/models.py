@@ -1,13 +1,12 @@
-from sqlalchemy import BigInteger, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from dataclasses import dataclass
 
-from dotenv import load_dotenv
-import os
+from sqlalchemy import BigInteger, Text
+from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-load_dotenv()
-engine = create_async_engine(url=os.getenv('SQLALCHEMY_URL'))
+from config_reader import config
+
+engine = create_async_engine(url=config.DB_URL.get_secret_value())
 
 async_session = async_sessionmaker(engine)
 

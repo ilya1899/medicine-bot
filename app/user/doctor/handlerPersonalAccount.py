@@ -44,7 +44,7 @@ lock = asyncio.Lock()
 
 from app.database.requests import requestsDoctor, requestsPreDoctor, requestsCountry, requestsSpecialty, requestsCity
 from app.keyboards import kbInline, kbReply
-from config import admin_group_id
+from config_reader import config
 from run import bot
 
 
@@ -646,11 +646,11 @@ VISA / MASTERCARD: {doctor.bank_details_abroad}
     messages = []
     # Проверяем, есть ли фото у доктора
     if doctor.photo and doctor.photo.strip():
-        messages.append(await bot.send_photo(chat_id=admin_group_id, photo=doctor.photo))
+        messages.append(await bot.send_photo(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), photo=doctor.photo))
 
-    messages.extend(await bot.send_media_group(chat_id=admin_group_id, media=mediaGroup))
+    messages.extend(await bot.send_media_group(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), media=mediaGroup))
     ids = ', '.join([str(message.message_id) for message in messages])
-    await bot.send_message(chat_id=admin_group_id, text='Выберите действие',
+    await bot.send_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), text='Выберите действие',
                            reply_markup=await kbInline.acceptPersonalAccount(doctor.user_id, ids))
 
 
@@ -701,7 +701,7 @@ async def message_rejectPersonalAccount(message: Message, state: FSMContext):
 
 <i>{message.html_text}</i>
 ''', parse_mode='html')
-    await bot.delete_message(chat_id=admin_group_id, message_id=data['id'])
+    await bot.delete_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), message_id=data['id'])
     await message.answer('Сообщение об отказе отправлено пользователю')
 
 
@@ -718,7 +718,7 @@ async def callback_newPhotoPersonalAccount(callback: CallbackQuery, state: FSMCo
 async def message_newPhotoPersonalAccount(message: Message, state: FSMContext):
     data = await state.get_data()
     doctor_id = data['doctor_id']
-    await bot.delete_messages(chat_id=admin_group_id, message_ids=data['ids'])
+    await bot.delete_messages(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), message_ids=data['ids'])
     await requestsPreDoctor.edit_photo(doctor_id, message.photo[-1].file_id)
     doctor = await requestsPreDoctor.get_doctor_by_user_id(doctor_id)
     await sendProfileDoctor(doctor)
@@ -753,6 +753,6 @@ async def message_newPhotoPersonalAccount(message: Message, state: FSMContext):
                 for photo in photos:
                     diplomasToSend.remove(photo)
 
-                await bot.delete_messages(chat_id=admin_group_id, message_ids=data['ids'])
+                await bot.delete_messages(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), message_ids=data['ids'])
                 doctor = await requestsPreDoctor.get_doctor_by_user_id(doctor_id)
                 await sendProfileDoctor(doctor)

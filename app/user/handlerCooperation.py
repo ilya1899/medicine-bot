@@ -35,7 +35,7 @@ lock = asyncio.Lock()
 
 from app.keyboards import kbInline, kbReply
 from app.database.requests import requestsDoctor
-from config import admin_group_id
+from config_reader import config
 
 
 @router.message(F.text == 'Сотрудничество')
@@ -171,7 +171,7 @@ async def message_requestTelegram(message: Message, state: FSMContext):
     await message.answer(
         'Вы зарегистрированы! Заполните профиль врача в личном кабинете. Перейти в панель врача можно, написав команду /doctor',
         reply_markup=kbReply.kbDoctorMain)
-    await bot.send_message(chat_id=admin_group_id, text=f'''Зарегистрировался новый доктор!
+    await bot.send_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), text=f'''Зарегистрировался новый доктор!
 
 ID: {user_id}
 ФИО: {data['full_name']}
@@ -243,11 +243,11 @@ async def connectAdmin(message, state, text):
                     mediaGroup[0].caption = photos[0].html_text
 
                 if len(mediaGroup) > 1:
-                    await bot.send_media_group(chat_id=admin_group_id, media=mediaGroup)
-                    await bot.send_message(chat_id=admin_group_id, text='Выберите действие',
+                    await bot.send_media_group(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), media=mediaGroup)
+                    await bot.send_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), text='Выберите действие',
                                            reply_markup=await kbInline.getKeyboardAnswerConnectAdmin(patient_id))
                 else:
-                    await bot.send_photo(chat_id=admin_group_id, photo=message.photo[-1].file_id,
+                    await bot.send_photo(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), photo=message.photo[-1].file_id,
                                          caption=f'''{text} <code>{patient_id}</code>
 
 {message.html_text}''', parse_mode='html', reply_markup=await kbInline.getKeyboardAnswerConnectAdmin(patient_id))
@@ -259,7 +259,7 @@ async def connectAdmin(message, state, text):
                 await message.answer('Спасибо за обращение! Администратор скоро с Вами свяжется.',
                                      reply_markup=await kbReply.kbPatientMain(patient_id))
     else:
-        await bot.send_message(chat_id=admin_group_id, text=f'''{text} <code>{patient_id}</code>
+        await bot.send_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), text=f'''{text} <code>{patient_id}</code>
 
 {message.html_text}''', parse_mode='html', reply_markup=await kbInline.getKeyboardAnswerConnectAdmin(patient_id))
         await state.clear()

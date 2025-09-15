@@ -8,6 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.user.doctor.handlerDoctorConsultations import ChatPatient
 from run import bot
+from texts import type_consultation
 
 router = Router()
 
@@ -15,7 +16,6 @@ from app.database.requests import requestsHistoryMessage, requestsHistoryConsult
     requestsSpecialty, requestsMessageToSend, requestsBundle, requestsUser
 from app.keyboards import kbInline, kbReply
 from app.businessLogic import logicConsultation
-from config import type_consultation
 
 
 @router.message(F.text == 'История консультаций')

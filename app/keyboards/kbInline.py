@@ -2,7 +2,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.database.requests import requestsBundle, requestsDoctor
-from config import type_consultation
+from texts import type_consultation
 
 regChooseGender = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Мужской', callback_data='regGender_male'),

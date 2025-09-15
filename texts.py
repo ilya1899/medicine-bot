@@ -231,4 +231,8 @@ HISTORY_NEW_QUESTION = "❓ Задать новый вопрос"
 HISTORY_BACK = "⬅️ Назад"
 HISTORY_CONSULTATION_WITH_DOCTOR = "Консультация с {doctor_name} — история переписки:"
 
-
+type_consultation = {'justAsk': 'Просто спросить',
+                     'decoding': 'Расшифровка анализов',
+                     'secondOpinion': 'Второе мнение',
+                     'mainFirst': 'Первичная консультация',
+                     'mainRepeated': 'Повторная консультация'}
