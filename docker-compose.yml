@@ -110,7 +110,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./logs:/logs
+      - ./logs:/usr/src/app/logs
     depends_on:
       - db
     networks:
