@@ -615,14 +615,34 @@ Instagram: {doctor.social_networks_instagram}'''
     else:
         socialNetworks = 'Социальные сети: Нет'
 
-    file = doctor.education.split(', ')[0]
-    file = await bot.get_file(file)
-    if file.file_path.split('/')[0] == 'documents':
-        mediaGroup = [InputMediaDocument(media=file) for file in doctor.education.split(', ')]
-    else:
-        mediaGroup = [InputMediaPhoto(media=file) for file in doctor.education.split(', ')]
-    mediaGroup[-1].parse_mode = 'html'
-    mediaGroup[-1].caption = f'''id врача: {doctor.user_id}
+    messages = []
+
+    if doctor.photo and doctor.photo.strip():
+        messages.append(await bot.send_photo(
+            chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
+            photo=doctor.photo
+        ))
+
+    if doctor.education and doctor.education.strip():
+        education_files = doctor.education.split(', ')
+
+        first_file = education_files[0]
+        try:
+            file_info = await bot.get_file(first_file)
+            file_extension = file_info.file_path.split('.')[-1].lower() if file_info.file_path else ''
+
+            is_document = (
+                    file_info.file_path and
+                    (file_info.file_path.startswith('documents/') or
+                     file_extension in ['pdf', 'doc', 'docx', 'txt', 'zip', 'rar'])
+            )
+
+            if is_document:
+                mediaGroup = [InputMediaDocument(media=file_id) for file_id in education_files]
+            else:
+                mediaGroup = [InputMediaPhoto(media=file_id) for file_id in education_files]
+
+            mediaGroup[-1].caption = f'''id врача: {doctor.user_id}
 ФИО: {doctor.full_name}
 Страна: {doctor.country}
 Город: {doctor.city}
@@ -641,17 +661,54 @@ Instagram: {doctor.social_networks_instagram}'''
 {socialNetworks}
 О себе: {doctor.about_me}
 МИР: {doctor.bank_details_russia}
-VISA / MASTERCARD: {doctor.bank_details_abroad}
-'''
-    messages = []
-    # Проверяем, есть ли фото у доктора
-    if doctor.photo and doctor.photo.strip():
-        messages.append(await bot.send_photo(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), photo=doctor.photo))
+VISA / MASTERCARD: {doctor.bank_details_abroad}'''
+            mediaGroup[-1].parse_mode = 'HTML'
 
-    messages.extend(await bot.send_media_group(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), media=mediaGroup))
+            media_messages = await bot.send_media_group(
+                chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
+                media=mediaGroup
+            )
+            messages.extend(media_messages)
+
+        except Exception as e:
+            await bot.send_message(
+                chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
+                text=f"Ошибка загрузки файлов образования: {e}"
+            )
+    else:
+        text_message = f'''id врача: {doctor.user_id}
+ФИО: {doctor.full_name}
+Страна: {doctor.country}
+Город: {doctor.city}
+Специальность: {doctor.specialty}
+Опыт работы: {doctor.work_experience}
+Резюме: {doctor.resume}
+Очный прием: {doctor.data_face_to_face if doctor.is_face_to_face else 'нет'}
+Стоимость:
+1. просто спросить {doctor.price_just_ask}
+2. расшифровка анализов {doctor.price_decoding}
+3. первичная консультация: {doctor.price_main_first}
+4. повторная консультация: {doctor.price_main_repeated}
+5. второе мнение: {doctor.price_second_opinion}
+Образование: {doctor.education_data}
+Достижения: {doctor.achievements}
+{socialNetworks}
+О себе: {doctor.about_me}
+МИР: {doctor.bank_details_russia}
+VISA / MASTERCARD: {doctor.bank_details_abroad}'''
+
+        messages.append(await bot.send_message(
+            chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
+            text=text_message,
+            parse_mode='HTML'
+        ))
+
     ids = ', '.join([str(message.message_id) for message in messages])
-    await bot.send_message(chat_id=config.ADMIN_GROUP_ID.get_secret_value(), text='Выберите действие',
-                           reply_markup=await kbInline.acceptPersonalAccount(doctor.user_id, ids))
+    await bot.send_message(
+        chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
+        text='Выберите действие',
+        reply_markup=await kbInline.acceptPersonalAccount(doctor.user_id, ids)
+    )
 
 
 @router.callback_query(F.data == 'publishPersonalAccount')

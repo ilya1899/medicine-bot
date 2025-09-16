@@ -29,21 +29,21 @@ logger = logging.getLogger(__name__)
 # client = gspread.authorize(creds)
 
 
-@dp.error()
-async def global_error_handler(event: ErrorEvent):
-    exception = event.exception
-    update: Update = event.update
-    logger.exception(f'Ошибка при обработке хэндлера: {exception}')
-
-    try:
-        if update.message:
-            await update.message.answer(
-                f'СООБЩЕНИЕ ДЛЯ ОТЛАДКИ!\n Отправьте это сообщение разработчикам\n Ошибка: {exception}')
-        elif update.callback_query:
-            await update.callback_query.message.answer(
-                f'СООБЩЕНИЕ ДЛЯ ОТЛАДКИ!\n Отправьте это сообщение разработчикам\n Ошибка: {exception}')
-    except Exception as e:
-        logging.error(f"Не удалось отправить ошибку в чат: {e}")
+# @dp.error()
+# async def global_error_handler(event: ErrorEvent):
+#     exception = event.exception
+#     update: Update = event.update
+#     logger.exception(f'Ошибка при обработке хэндлера: {exception}')
+#
+#     try:
+#         if update.message:
+#             await update.message.answer(
+#                 f'СООБЩЕНИЕ ДЛЯ ОТЛАДКИ!\n Отправьте это сообщение разработчикам\n Ошибка: {exception}')
+#         elif update.callback_query:
+#             await update.callback_query.message.answer(
+#                 f'СООБЩЕНИЕ ДЛЯ ОТЛАДКИ!\n Отправьте это сообщение разработчикам\n Ошибка: {exception}')
+#     except Exception as e:
+#         logging.error(f"Не удалось отправить ошибку в чат: {e}")
 
 
 async def main():

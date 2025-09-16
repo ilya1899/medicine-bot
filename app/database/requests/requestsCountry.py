@@ -42,8 +42,7 @@ async def get_country_by_id(id: int):
 async def get_all_countries():
     async with async_session() as session:
         countries = await session.scalars(select(Country).order_by(Country.name))
-        raise Exception('проверка обработчика')
-        # return countries.all()
+        return countries.all()
 
 
 async def is_country_by_name(name: str):
