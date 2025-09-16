@@ -144,7 +144,7 @@ async def callback_dialogDoctor(callback: CallbackQuery, state: FSMContext):
                         mediaGroup[0].caption = messageToSend.text
                     await callback.message.answer_media_group(mediaGroup)
         await requestsMessageToSend.delete_messages_to_send(patient_id, doctor_id)
-    
+
     # Add reply/delete buttons for doctor
     consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
     reply_keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -154,7 +154,7 @@ async def callback_dialogDoctor(callback: CallbackQuery, state: FSMContext):
         ]
     ])
     await callback.message.answer('Выберите действие:', reply_markup=reply_keyboard)
-    
+
     await state.set_state(ChatDoctor.openDialog)
     await state.update_data(patient_id=patient_id, chat_type=chat_type)
 
@@ -203,7 +203,6 @@ async def callback_backNewConsultation(callback: CallbackQuery, state: FSMContex
 
 
 async def timer_consultation(patient_id, doctor_id, chat_type):
-    """Timer for consultation - closes consultation after 24 hours"""
     await asyncio.sleep(86400)
     if await requestsBundle.is_bundle(patient_id, doctor_id):
         await requestsBundle.delete_bundle(patient_id, doctor_id)
@@ -213,11 +212,11 @@ async def timer_consultation(patient_id, doctor_id, chat_type):
         await bot.send_message(chat_id=patient_id, text='''<code>Бот</code>
 
 Время истекло, консультация с врачом завершена.''', parse_mode='html',
-                                reply_markup=await kbReply.kbPatientMain(patient_id))
+                               reply_markup=await kbReply.kbPatientMain(patient_id))
 
         await bot.send_message(chat_id=patient_id,
-                                text='Насколько подробно доктор погрузился в суть проблемы, дал исчерпывающий и понятный ответ?',
-                                reply_markup=await kbInline.keyboardStars(doctor_id, 1, chat_type))
+                               text='Насколько подробно доктор погрузился в суть проблемы, дал исчерпывающий и понятный ответ?',
+                               reply_markup=await kbInline.keyboardStars(doctor_id, 1, chat_type))
 
 
 @router.callback_query(F.data == 'deleteMessage', ChatDoctor.openDialog)
@@ -237,15 +236,14 @@ async def notify_patient_about_new_message(patient_id: int, doctor_fullname: str
 
 async def notify_doctor_about_new_message(doctor_id: int, patient_id: int, consult_id: int):
     patient = await requestsUser.get_user_by_id(user_id=patient_id)
-    gender_label = GENDER_MALE if patient.gender == 'male' else GENDER_FEMALE
-    
-    # Get the last message from patient for context
+    gender_label = GENDER_MALE if patient.gender == 'Мужчина' else GENDER_FEMALE
+
     last_message = await requestsMessageToSend.get_first_message_to_send(patient_id, doctor_id)
     message_text = last_message.text if last_message else "Новое сообщение"
-    
+
     text = f'''<code>Бот</code>
 
-Новое сообщение от: <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
+Новое сообщение от: <b>{patient.full_name}</b>, <b>{gender_label}</b>, <b>{patient.age}</b> лет, <b>{patient.city}</b>
 
 {message_text}'''
 
@@ -259,7 +257,6 @@ async def notify_doctor_about_new_message(doctor_id: int, patient_id: int, consu
 
 @router.callback_query(F.data.startswith("seePatientMessage_"))
 async def callback_seePatientMessage(callback: CallbackQuery, state: FSMContext):
-    """Show conversation with in-message pagination (page 1)."""
     _, patient_id, consult_id = callback.data.split("_")
     patient_id, consult_id = int(patient_id), int(consult_id)
 
@@ -274,7 +271,6 @@ def _split_media_ids(media_id_str: str):
 
 @router.callback_query(F.data.startswith("seeConsultation_"))
 async def callback_seeConsultation(callback: CallbackQuery, state: FSMContext):
-    """Open consultation with in-message pagination (page 1)."""
     _, patient_id, consult_id = callback.data.split("_")
     patient_id, consult_id = int(patient_id), int(consult_id)
 
@@ -300,11 +296,12 @@ def _format_message_line(msg) -> str:
             return base + text
 
 
-async def _build_conversation_page_text(patient_id: int, consult_id: int, page: int, page_size: int = 5) -> tuple[str, int, int]:
+async def _build_conversation_page_text(patient_id: int, consult_id: int, page: int, page_size: int = 5) -> tuple[
+    str, int, int]:
     messages = await requestsHistoryMessage.get_all_messages_by_consultation_id(consult_id)
     total = len(messages)
     if total == 0:
-        return ("Переписки пока нет", 0, 0)
+        return "Переписки пока нет", 0, 0
     total_pages = total // page_size + (1 if total % page_size else 0)
     page = max(1, min(page, total_pages))
     start = (page - 1) * page_size
@@ -317,7 +314,7 @@ async def _build_conversation_page_text(patient_id: int, consult_id: int, page: 
     body_lines = [_format_message_line(m) for m in messages[start:end]]
     body = "\n\n".join(body_lines)
     footer = f"\n\nСтр. {page}/{total_pages}"
-    return (header + body + footer, page, total_pages)
+    return header + body + footer, page, total_pages
 
 
 def _conversation_nav_kb(patient_id: int, consult_id: int, page: int, total_pages: int) -> InlineKeyboardMarkup:
@@ -330,7 +327,8 @@ def _conversation_nav_kb(patient_id: int, consult_id: int, page: int, total_page
         ],
         [
             InlineKeyboardButton(text='Ответить', callback_data=f'doctorReply_{patient_id}_{consult_id}'),
-            InlineKeyboardButton(text='Отложить консультацию', callback_data=f'doctorPostpone_{patient_id}_{consult_id}'),
+            InlineKeyboardButton(text='Отложить консультацию',
+                                 callback_data=f'doctorPostpone_{patient_id}_{consult_id}'),
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -339,7 +337,7 @@ def _conversation_nav_kb(patient_id: int, consult_id: int, page: int, total_page
 async def _open_or_edit_conversation(callback: CallbackQuery, patient_id: int, consult_id: int, page: int):
     text, page, total_pages = await _build_conversation_page_text(patient_id, consult_id, page)
     kb = _conversation_nav_kb(patient_id, consult_id, page, total_pages)
-    # Edit the same message in place
+
     await callback.message.edit_text(text=text, reply_markup=kb, parse_mode='html')
     await callback.answer()
 
@@ -364,7 +362,7 @@ async def callback_doctor_reply(callback: CallbackQuery, state: FSMContext):
 
     # Fix KeyError by providing default value
     consultation_type = type_consultation.get(chat_type, "Неизвестный тип")
-    
+
     keyboard = kbReply.kbDoctorDialog1 if chat_type in ['justAsk', 'secondOpinion'] else kbReply.kbDoctorDialog2
 
     await callback.message.answer(
@@ -372,7 +370,6 @@ async def callback_doctor_reply(callback: CallbackQuery, state: FSMContext):
         reply_markup=keyboard
     )
 
-    # Show pending messages from patient with context
     if await requestsMessageToSend.is_message_to_send(patient_id, doctor_id):
         patient = await requestsUser.get_user_by_id(user_id=patient_id)
         messages = await requestsMessageToSend.get_messages_to_send(patient_id, doctor_id)
@@ -397,7 +394,7 @@ async def callback_doctor_reply(callback: CallbackQuery, state: FSMContext):
                         mediaGroup[0].caption = text
                     await callback.message.answer_media_group(mediaGroup)
         await requestsMessageToSend.delete_messages_to_send(patient_id, doctor_id)
-    
+
     await state.set_state(ChatDoctor.openDialog)
     await state.update_data(patient_id=patient_id, chat_type=chat_type)
     await callback.message.answer("✍️ Напишите ваш ответ и отправьте.")
@@ -411,6 +408,7 @@ async def callback_doctor_postpone(callback: CallbackQuery):
 
     await requestsBundle.edit_is_open_dialog_doctor(patient_id, doctor_id, False)
     await callback.message.answer("Консультация отложена. Вы можете вернуться к ней позже в меню 'Консультации'.")
+
 
 @router.callback_query(F.data.startswith("replyMessage_"))
 async def callback_replyMessage(callback: CallbackQuery, state: FSMContext):
@@ -456,19 +454,16 @@ async def process_doctor_message_text(message: Message, state: FSMContext):
     data = await state.get_data()
     patient_id = data.get('patient_id')
     chat_type = data.get('chat_type')
-    
+
     if not patient_id:
         await message.answer("Ошибка: не найден пациент")
         return
-    
-    # Get doctor name
+
     doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
     doctor_name = doctor.full_name if doctor else f"Врач {doctor_id}"
-    
-    # Format message with doctor name
+
     text = f"<b>{doctor_name}</b>\n\n{message.text}"
-    
-    # Add to history
+
     consult_id = await requestsHistoryMessage.get_last_consultation_id(patient_id, doctor_id)
     await requestsHistoryMessage.add_message(
         id_consultation=consult_id,
@@ -479,16 +474,16 @@ async def process_doctor_message_text(message: Message, state: FSMContext):
         media_type="text",
         media_id=""
     )
-    
-    # Send to patient
+
+
     if await requestsBundle.is_bundle(patient_id, doctor_id):
         if await requestsBundle.is_open_dialog_patient(patient_id, doctor_id):
             await bot.send_message(chat_id=patient_id, text=text, parse_mode='html')
         else:
             await requestsMessageToSend.add_message_to_send(doctor_id, patient_id, text, 'text', '', False)
             await notify_patient_about_new_message(patient_id, doctor_name, doctor_id)
-    
-    # Handle different consultation types
+
+
     if chat_type in ['justAsk', 'secondOpinion']:
         await bot.send_message(chat_id=patient_id,
                                text='Насколько подробно доктор погрузился в суть проблемы, дал исчерпывающий и понятный ответ?',
