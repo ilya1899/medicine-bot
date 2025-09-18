@@ -22,7 +22,8 @@ jobs:
           script: |
             cd /home/medicine-bot/
             git pull
-            pm2 start ecosystem.config.js
+            pm2 stop medicine-bot-start
+            pm2 start medicine-bot-start.sh
 
       - name: Deploy info
         run: echo 'Successfully updated'
