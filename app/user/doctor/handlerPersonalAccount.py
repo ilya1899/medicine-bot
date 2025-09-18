@@ -620,7 +620,6 @@ Instagram: {doctor.social_networks_instagram}'''
     messages = []
 
     try:
-
         if doctor.photo and doctor.photo.strip():
             messages.append(await bot.send_photo(
                 chat_id=config.ADMIN_GROUP_ID.get_secret_value(),

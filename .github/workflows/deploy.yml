@@ -22,8 +22,7 @@ jobs:
           script: |
             cd /home/medicine-bot/
             git pull
-            sudo docker compose down
-            sudo docker compose up --build -d
+            pm2 start ecosystem.config.js
 
       - name: Deploy info
         run: echo 'Successfully updated'
