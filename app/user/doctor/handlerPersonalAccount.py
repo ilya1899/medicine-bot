@@ -4,6 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import asyncio
 
+from app.database.models import Doctor
+
 router = Router()
 
 
@@ -607,7 +609,7 @@ async def message_doctorEditBankDetailsAbroad(message: Message, state: FSMContex
                                     message.from_user.id, 'bankDetails')
 
 
-async def sendProfileDoctor(doctor):
+async def sendProfileDoctor(doctor: Doctor):
     if doctor.is_social_networks:
         socialNetworks = f'''Социальные сети: Да
 Telegram: {doctor.social_networks_telegram}
@@ -617,11 +619,15 @@ Instagram: {doctor.social_networks_instagram}'''
 
     messages = []
 
-    if doctor.photo and doctor.photo.strip() and len(doctor.photo) != 0:
-        messages.append(await bot.send_photo(
-            chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
-            photo=doctor.photo
-        ))
+    try:
+
+        if doctor.photo and doctor.photo.strip():
+            messages.append(await bot.send_photo(
+                chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
+                photo=doctor.photo
+            ))
+    except Exception as e:
+        print(e)
 
     if doctor.education and doctor.education.strip():
         education_files = doctor.education.split(', ')
