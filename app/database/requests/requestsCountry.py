@@ -48,4 +48,4 @@ async def get_all_countries():
 async def is_country_by_name(name: str):
     async with async_session() as session:
         country = await session.scalar(select(Country).where(Country.name == name))
-        return country != None
+        return country is not None
