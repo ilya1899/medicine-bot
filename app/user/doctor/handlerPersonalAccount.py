@@ -617,7 +617,7 @@ Instagram: {doctor.social_networks_instagram}'''
 
     messages = []
 
-    if doctor.photo and doctor.photo.strip():
+    if doctor.photo and doctor.photo.strip() and len(doctor.photo) != 0:
         messages.append(await bot.send_photo(
             chat_id=config.ADMIN_GROUP_ID.get_secret_value(),
             photo=doctor.photo
