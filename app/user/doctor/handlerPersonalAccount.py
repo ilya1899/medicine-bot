@@ -709,10 +709,11 @@ VISA / MASTERCARD: {doctor.bank_details_abroad}'''
         ))
 
     ids = ', '.join([str(message.message_id) for message in messages])
+    print(ids)
     await bot.send_message(
         chat_id=int(config.ADMIN_GROUP_ID.get_secret_value()),
         text='Выберите действие',
-        reply_markup=await kbInline.acceptPersonalAccount(doctor.user_id, ids)
+        reply_markup=kbInline.acceptPersonalAccount(doctor.user_id, ids)
     )
 
 
