@@ -281,7 +281,7 @@ async def getKeyboardDoctorsInfo(page, index, doctors, specialty):
     return keyboard.as_markup()
 
 
-async def getKeyboardResume(index, specialty, doctors):
+def getKeyboardResume(index, specialty, doctors):
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text='Дипломы', callback_data=f'education_{index}_{specialty}'),
                  InlineKeyboardButton(text='В свободное время я...', callback_data=f'moreInfo_{index}_{specialty}'))
@@ -309,7 +309,7 @@ async def returnToDoctorInfo(index, specialty, id):
     return keyboard.as_markup()
 
 
-async def returnToResume(index, specialty, id):
+def returnToResume(index, specialty, id):
     keyboard = InlineKeyboardBuilder()
     keyboard.row(InlineKeyboardButton(text='Назад', callback_data=f'resume_{index}_{specialty}_{id}'))
     return keyboard.as_markup()

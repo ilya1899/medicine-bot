@@ -374,7 +374,7 @@ async def resume(callback: CallbackQuery):
 {doctor.education_data or 'Не указано'}
 
 {doctor.achievements or 'Не указано'}''',
-            reply_markup=await kbInline.getKeyboardResume(index, id, doctors),
+            reply_markup=kbInline.getKeyboardResume(index, id, doctors),
             parse_mode='HTML'
         )
 
@@ -446,7 +446,7 @@ async def socialNetworks(callback: CallbackQuery):
 
 Telegram: {doctor.social_networks_telegram}
 Instagram: {doctor.social_networks_instagram}
-''', parse_mode='html', reply_markup=await kbInline.returnToResume(index, id, -1))
+''', parse_mode='html', reply_markup=kbInline.returnToResume(index, id, -1))
 
 
 async def returnToDoctorInfo(callback: CallbackQuery):
