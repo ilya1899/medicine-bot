@@ -1,6 +1,6 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, and_
 
-from app.database.models import async_session, Doctor
+from app.database.models import async_session, Doctor, Specialty, HistoryConsultation
 
 
 async def add_doctor(doctor: Doctor):
@@ -380,3 +380,28 @@ async def get_all_doctors():
     async with async_session() as session:
         doctors = await session.scalars(select(Doctor))
         return doctors.all()
+
+
+async def get_doctors_by_specialty_id_and_patient(specialty_id: int, patient_id: int):
+    async with async_session() as session:
+        result = await session.execute(
+            select(Specialty).where(Specialty.id == specialty_id)
+        )
+        specialty = result.scalar_one_or_none()
+
+        if not specialty:
+            return []
+
+        result = await session.execute(
+            select(Doctor)
+            .join(HistoryConsultation, HistoryConsultation.doctor_id == Doctor.user_id)
+            .where(
+                and_(
+                    Doctor.specialty == specialty.name,
+                    HistoryConsultation.patient_id == patient_id
+                )
+            )
+            .distinct()
+            .order_by(Doctor.full_name)
+        )
+        return result.scalars().all()

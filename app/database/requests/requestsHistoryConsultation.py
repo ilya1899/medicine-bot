@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import select, update, desc
+from sqlalchemy import select, update, desc, and_
 
 from app.database.models import HistoryConsultation, HistoryMessage, Bundle
 from app.database.models import async_session
@@ -148,3 +148,21 @@ async def close_consultation(doctor_id: int, patient_id: int):
         )
         await session.commit()
         return True
+
+async def get_consultations_by_patient_and_doctor(patient_id: int, doctor_id: int):
+    async with async_session() as session:
+        try:
+            result = await session.execute(
+                select(HistoryConsultation)
+                .where(
+                    and_(
+                        HistoryConsultation.patient_id == patient_id,
+                        HistoryConsultation.doctor_id == doctor_id
+                    )
+                )
+                .order_by(HistoryConsultation.id.desc())
+            )
+            return result.scalars().all()
+        except Exception as e:
+            print(f"Error getting consultations: {e}")
+            return []

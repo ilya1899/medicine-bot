@@ -48,7 +48,8 @@ async def callback_history_specialty(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     for doctor_id in doctors_set:
         doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
-        builder.button(text=doctor.full_name if doctor.full_name is not None else '', callback_data=f"history_doc_{doctor_id}_{specialty}")
+        builder.button(text=doctor.full_name if doctor.full_name is not None else '',
+                       callback_data=f"history_doc_{doctor_id}_{specialty}")
     builder.button(text="Назад", callback_data="history_back_to_start")
     builder.adjust(1)
 
@@ -113,7 +114,7 @@ async def callback_history_consultation(callback: CallbackQuery):
 async def callback_continue_consultation(callback: CallbackQuery, state: FSMContext):
     consult_id = int(callback.data.split("_")[2])
     consultation = await requestsHistoryConsultation.get_consultation(consult_id)
-    messages = await requestsHistoryMessage.get_messages_by_consultation_id(consult_id)
+    messages = await requestsHistoryMessage.get_all_messages_by_consultation_id(consult_id)
 
     text = f"<b>Консультация с {consultation.doctor_id}</b>\n"
     for msg in messages:
@@ -237,11 +238,10 @@ async def callback_history_doctor(callback: CallbackQuery):
     patient_id = callback.from_user.id
     consultations = await requestsHistoryConsultation.get_consultations_by_patient_and_doctor(patient_id, doctor_id)
     if consultations:
-        # формируем подписи консультаций с учётом 🔄
         consultation_titles = []
         for c in consultations:
             title = c.title
-            if c.chat_type in ['mainFirst', 'mainRepeated']:  # типы, которые можно продолжить
+            if c.chat_type in ['mainFirst', 'mainRepeated']:
                 title = f'🔄 {title}'
             consultation_titles.append(
                 {'id': c.id, 'title': title, 'isRepeated': c.chat_type in ['mainFirst', 'mainRepeated']})
@@ -250,7 +250,7 @@ async def callback_history_doctor(callback: CallbackQuery):
                 "Выберите консультацию:")
         await callback.message.edit_text(text,
                                          reply_markup=await kbInline.getKeyboardConsultationsHistory(
-                                             consultation_titles, doctor_id, specialty_id))
+                                             consultation_titles))
     else:
         await callback.answer('Нет консультаций с этим врачом')
 
@@ -284,8 +284,7 @@ async def callback_history_consultation(callback: CallbackQuery):
     is_continuable = consultation.chat_type in ['mainFirst', 'mainRepeated']
     await callback.message.answer(
         'Выберите действие:',
-        reply_markup=await kbInline.getKeyboardConsultationActions(consultation_id, doctor_id, is_continuable,
-                                                                   specialty_id)
+        reply_markup=await kbInline.getKeyboardConsultationActions(consultation_id, doctor_id, is_continuable)
     )
 
 

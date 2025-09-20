@@ -447,6 +447,10 @@ async def socialNetworks(callback: CallbackQuery):
 Telegram: {doctor.social_networks_telegram}
 Instagram: {doctor.social_networks_instagram}
 ''', parse_mode='html', reply_markup=kbInline.returnToResume(index, id, -1))
+    else:
+        await callback.message.edit_caption(inline_message_id=str(callback.message.message_id), caption=f'''
+        Доктора нет в социальных сетях!
+        ''', parse_mode='html', reply_markup=kbInline.returnToResume(index, id, -1))
 
 
 async def returnToDoctorInfo(callback: CallbackQuery):
