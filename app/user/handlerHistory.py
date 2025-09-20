@@ -48,7 +48,7 @@ async def callback_history_specialty(callback: CallbackQuery):
     builder = InlineKeyboardBuilder()
     for doctor_id in doctors_set:
         doctor = await requestsDoctor.get_doctor_by_user_id(doctor_id)
-        builder.button(text=doctor.full_name, callback_data=f"history_doc_{doctor_id}_{specialty}")
+        builder.button(text=doctor.full_name if doctor.full_name is not None else '', callback_data=f"history_doc_{doctor_id}_{specialty}")
     builder.button(text="Назад", callback_data="history_back_to_start")
     builder.adjust(1)
 

@@ -840,7 +840,6 @@ whatsEditLastMessage = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
-# --- Уровень 1: специальности ---
 async def getKeyboardSpecialtiesHistory(specialties: list) -> InlineKeyboardMarkup:
     keyboard_buttons = [
         [InlineKeyboardButton(text=spec.name, callback_data=f"historySpecialty_{spec.id}")]
@@ -849,7 +848,6 @@ async def getKeyboardSpecialtiesHistory(specialties: list) -> InlineKeyboardMark
     return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
 
-# --- Уровень 2: врачи ---
 async def getKeyboardDoctorsHistory(doctors: list, specialty_id: int) -> InlineKeyboardMarkup:
     keyboard_buttons = [
         [InlineKeyboardButton(text=doc.full_name, callback_data=f"historyDoctor_{specialty_id}_{doc.user_id}")]
@@ -859,7 +857,6 @@ async def getKeyboardDoctorsHistory(doctors: list, specialty_id: int) -> InlineK
     return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
 
-# --- Уровень 3: консультации ---
 async def getKeyboardConsultationsHistory(consultations: list) -> InlineKeyboardMarkup:
     keyboard_buttons = []
     for c in consultations:
@@ -869,7 +866,6 @@ async def getKeyboardConsultationsHistory(consultations: list) -> InlineKeyboard
     return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
 
-# --- Кнопки действий на уровне консультации ---
 async def getKeyboardConsultationActions(consultation_id: int, doctor_id: int, chat_type: str) -> InlineKeyboardMarkup:
     keyboard_buttons = []
     if chat_type in ["mainFirst", "mainRepeated"]:
@@ -882,7 +878,6 @@ async def getKeyboardConsultationActions(consultation_id: int, doctor_id: int, c
     return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
 
-# --- Кнопки выбора между завершенными и текущими консультациями ---
 async def typesHistoryConsultation() -> InlineKeyboardMarkup:
     keyboard_buttons = [
         [InlineKeyboardButton(text="Текущие", callback_data="ongoingConsultations"),
