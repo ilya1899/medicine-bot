@@ -546,7 +546,7 @@ yesOrNoCMI = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
-async def acceptPersonalAccount(user_id, ids):
+def acceptPersonalAccount(user_id, ids):
     keyboard = InlineKeyboardBuilder()
     keyboard.row(
         InlineKeyboardButton(text='Загрузить новое фото', callback_data=f'newPhotoPersonalAccount_{user_id}_{ids}'))
