@@ -432,7 +432,7 @@ async def education(callback: CallbackQuery):
     message = await callback.message.answer_media_group(media=mediaGroup)
     ids = ', '.join([str(message[i].message_id) for i in range(len(message))])
     await callback.message.answer('<b>Дипломы</b>', parse_mode='html',
-                                  reply_markup=await kbInline.returnToResume(index, id, ids))
+                                  reply_markup=kbInline.returnToResume(index, id, ids))
 
 
 async def socialNetworks(callback: CallbackQuery):
