@@ -345,36 +345,80 @@ async def moreInfo(callback: CallbackQuery):
 
 
 async def resume(callback: CallbackQuery):
-    index = int(callback.data.split('_')[1])
-    id = int(callback.data.split('_')[2])
-    specialty = await requestsSpecialty.get_specialty_by_id(id)
-    doctors = await requestsDoctor.get_doctors_by_specialty(specialty.name)
-    doctor = doctors[index]
     try:
-        ids = callback.data.split('_')[3]
-        if ids != '-1':
-            ids = ids.split(', ')
-            await bot.delete_messages(chat_id=callback.from_user.id, message_ids=[int(i) for i in ids])
-        await callback.message.delete()
-        await callback.message.answer(text=f'''<b>Резюме</b>
+        data_parts = callback.data.split('_')
+        index = int(data_parts[1])
+        id = int(data_parts[2])
 
-{doctor.resume}
+        if len(data_parts) > 3 and data_parts[3] != '-1':
+            try:
+                ids = data_parts[3].split(', ')
+                await bot.delete_messages(
+                    chat_id=callback.from_user.id,
+                    message_ids=[int(msg_id) for msg_id in ids if msg_id.isdigit()]
+                )
+            except:
+                pass
+
+        specialty = await requestsSpecialty.get_specialty_by_id(id)
+        doctors = await requestsDoctor.get_doctors_by_specialty(specialty.name)
+        doctor = doctors[index]
+
+        await callback.message.answer(
+            text=f'''<b>Резюме</b>
+
+{doctor.resume or 'Не указано'}
 
 <b>Образование</b>
 
-{doctor.education_data}
+{doctor.education_data or 'Не указано'}
 
-{doctor.achievements}''', reply_markup=await kbInline.getKeyboardResume(index, id, doctors), parse_mode='html')
-    except:
-        await callback.message.edit_caption(inline_message_id=str(callback.message.message_id), caption=f'''<b>Резюме</b>
+{doctor.achievements or 'Не указано'}''',
+            reply_markup=await kbInline.getKeyboardResume(index, id, doctors),
+            parse_mode='HTML'
+        )
 
-{doctor.resume}
+        try:
+            await callback.message.delete()
+        except:
+            pass
 
-<b>Образование</b>
+    except Exception as e:
+        print(f"Error in resume: {e}")
+        await callback.answer("Ошибка загрузки резюме")
 
-{doctor.education_data}
 
-{doctor.achievements}''', reply_markup=await kbInline.getKeyboardResume(index, id, doctors), parse_mode='html')
+# async def resume(callback: CallbackQuery):
+#     index = int(callback.data.split('_')[1])
+#     id = int(callback.data.split('_')[2])
+#     specialty = await requestsSpecialty.get_specialty_by_id(id)
+#     doctors = await requestsDoctor.get_doctors_by_specialty(specialty.name)
+#     doctor = doctors[index]
+#     try:
+#         ids = callback.data.split('_')[3]
+#         if ids != '-1':
+#             ids = ids.split(', ')
+#             await bot.delete_messages(chat_id=callback.from_user.id, message_ids=[int(i) for i in ids])
+#         await callback.message.delete()
+#         await callback.message.answer(text=f'''<b>Резюме</b>
+#
+# {doctor.resume}
+#
+# <b>Образование</b>
+#
+# {doctor.education_data}
+#
+# {doctor.achievements}''', reply_markup=await kbInline.getKeyboardResume(index, id, doctors), parse_mode='html')
+#     except Exception as e:
+#         await callback.message.edit_caption(inline_message_id=str(callback.message.message_id), caption=f'''<b>Резюме</b>
+#
+# {doctor.resume}
+#
+# <b>Образование</b>
+#
+# {doctor.education_data}
+#
+# {doctor.achievements}''', reply_markup=await kbInline.getKeyboardResume(index, id, doctors), parse_mode='html')
 
 
 async def education(callback: CallbackQuery):
